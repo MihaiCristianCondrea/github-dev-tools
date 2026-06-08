@@ -128,10 +128,16 @@ export default class RepoMapperApp extends WebComponent {
 		this.select("#drawer-open")?.addEventListener("click", () => this.toggleDrawer(true));
 		this.select("#drawer-close")?.addEventListener("click", () => this.toggleDrawer(false));
 		this.select("#drawer-scrim")?.addEventListener("click", () => this.toggleDrawer(false));
-		this.selectAll<HTMLButtonElement>("[data-view]").forEach((button) => {
-			button.addEventListener("click", () => {
+		this.selectAll<HTMLElement>("[data-view]").forEach((button) => {
+			const activate = () => {
 				const view = button.dataset.view as ViewId;
 				this.navigateTo(view);
+			};
+			button.addEventListener("click", activate);
+			button.addEventListener("keydown", (event) => {
+				if (event.key !== "Enter" && event.key !== " ") return;
+				event.preventDefault();
+				activate();
 			});
 		});
 	}
@@ -179,11 +185,11 @@ export default class RepoMapperApp extends WebComponent {
 
 		this.selectAll(".nav-item").forEach((item) => {
 			item.classList.remove("active");
-			item.querySelector(".material-symbols-outlined")?.classList.remove("filled-icon");
+			item.querySelector("md-icon, .material-symbols-outlined")?.classList.remove("filled-icon");
 		});
 		const activeNav = this.select(`#nav-${viewId}`);
 		activeNav?.classList.add("active");
-		activeNav?.querySelector(".material-symbols-outlined")?.classList.add("filled-icon");
+		activeNav?.querySelector("md-icon, .material-symbols-outlined")?.classList.add("filled-icon");
 
 		if (url && viewId === "mapper") {
 			this.select<HTMLInputElement>("#mapper-url")!.value = url;
@@ -368,7 +374,7 @@ export default class RepoMapperApp extends WebComponent {
 		if (view === "releases") this.state.releases.parsedRepo = parsed;
 
 		button.classList.toggle("hidden", !parsed);
-		const icon = button.querySelector(".material-symbols-outlined");
+		const icon = button.querySelector("md-icon, .material-symbols-outlined");
 		if (!parsed || !icon) return;
 		const active = this.isFavorite(parsed.owner, parsed.repo);
 		button.classList.toggle("active", active);
@@ -376,7 +382,7 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private toggleToken(view: "mapper" | "releases"): void {
-		const container = this.select(`#${view}-token-container`);
+		const container = this.select(`#${view}-token`);
 		const label = this.select(`#${view}-token-label`);
 		if (!container || !label) return;
 		const shouldShow = container.classList.contains("hidden");
@@ -633,7 +639,7 @@ export default class RepoMapperApp extends WebComponent {
 		const button = this.select<HTMLButtonElement>(buttonSelector);
 		if (!button) return;
 		const originalHtml = button.innerHTML;
-		button.innerHTML = `<span class="material-symbols-outlined copied">check_circle</span><span class="copied">Copied</span>`;
+		button.innerHTML = `<md-icon slot="icon" class="copied">check_circle</md-icon><span class="copied">Copied</span>`;
 		window.setTimeout(() => {
 			button.innerHTML = originalHtml;
 		}, 2000);
@@ -675,7 +681,7 @@ export default class RepoMapperApp extends WebComponent {
 
 	private setLoading(buttonSelector: string, label: string, iconName: string): () => void {
 		const button = this.select<HTMLButtonElement>(buttonSelector)!;
-		const icon = button.querySelector(".material-symbols-outlined")!;
+		const icon = button.querySelector("md-icon, .material-symbols-outlined")!;
 		const text = button.querySelector("span:last-child")!;
 		const originalIcon = icon.textContent ?? "";
 		const originalText = text.textContent ?? "";
@@ -691,9 +697,8 @@ export default class RepoMapperApp extends WebComponent {
 		};
 	}
 
-	private createIcon(name: string): HTMLSpanElement {
-		const icon = document.createElement("span");
-		icon.className = "material-symbols-outlined";
+	private createIcon(name: string): HTMLElement {
+		const icon = document.createElement("md-icon");
 		icon.textContent = name;
 		return icon;
 	}
