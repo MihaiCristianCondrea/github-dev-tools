@@ -3,20 +3,20 @@
 	<nav id="drawer" class="drawer" aria-label="Primary navigation">
 		<div class="drawer-header">
 			<h2>Menu</h2>
-			<button id="drawer-close" class="icon-button" type="button" aria-label="Close menu"><span class="material-symbols-outlined">close</span></button>
+			<md-icon-button id="drawer-close" class="icon-button" type="button" aria-label="Close menu"><md-icon>close</md-icon></md-icon-button>
 		</div>
 		<div class="drawer-content">
-			<button id="nav-home" class="nav-item" type="button" data-view="home"><span class="material-symbols-outlined">home</span><span>Home</span></button>
-			<button id="nav-favorites" class="nav-item" type="button" data-view="favorites"><span class="material-symbols-outlined">star</span><span>Favorites</span></button>
-			<button id="nav-mapper" class="nav-item" type="button" data-view="mapper"><span class="material-symbols-outlined">terminal</span><span>Repo Mapper</span></button>
-			<button id="nav-releases" class="nav-item" type="button" data-view="releases"><span class="material-symbols-outlined">bar_chart</span><span>Release Stats</span></button>
-			<button id="nav-gitpatch" class="nav-item" type="button" data-view="gitpatch"><span class="material-symbols-outlined">difference</span><span>Git Patch</span></button>
+			<md-text-button id="nav-home" class="nav-item" type="button" data-view="home"><md-icon slot="icon">home</md-icon><span>Home</span></md-text-button>
+			<md-text-button id="nav-favorites" class="nav-item" type="button" data-view="favorites"><md-icon slot="icon">star</md-icon><span>Favorites</span></md-text-button>
+			<md-text-button id="nav-mapper" class="nav-item" type="button" data-view="mapper"><md-icon slot="icon">terminal</md-icon><span>Repo Mapper</span></md-text-button>
+			<md-text-button id="nav-releases" class="nav-item" type="button" data-view="releases"><md-icon slot="icon">bar_chart</md-icon><span>Release Stats</span></md-text-button>
+			<md-text-button id="nav-gitpatch" class="nav-item" type="button" data-view="gitpatch"><md-icon slot="icon">difference</md-icon><span>Git Patch</span></md-text-button>
 		</div>
 	</nav>
 
 	<header class="topbar">
 		<div class="topbar-title">
-			<button id="drawer-open" class="icon-button" type="button" aria-label="Open menu"><span class="material-symbols-outlined">menu</span></button>
+			<md-icon-button id="drawer-open" class="icon-button" type="button" aria-label="Open menu"><md-icon>menu</md-icon></md-icon-button>
 			<h1>RepoMapper</h1>
 		</div>
 	</header>
@@ -34,19 +34,19 @@
 						<span class="tool-icon material-symbols-outlined">terminal</span>
 						<span class="tool-card-title">Repo Mapper</span>
 						<span class="tool-card-copy">Generate ASCII directory trees or plain path lists from any public repository.</span>
-						<span class="tool-link">Launch Tool <span class="material-symbols-outlined">arrow_forward</span></span>
+						<span class="tool-link">Launch Tool <md-icon>arrow_forward</md-icon></span>
 					</button>
 					<button class="tool-card" type="button" data-view="releases">
 						<span class="tool-icon material-symbols-outlined">bar_chart</span>
 						<span class="tool-card-title">Release Stats</span>
 						<span class="tool-card-copy">Visualize download counts and asset performance for GitHub releases.</span>
-						<span class="tool-link">Launch Tool <span class="material-symbols-outlined">arrow_forward</span></span>
+						<span class="tool-link">Launch Tool <md-icon>arrow_forward</md-icon></span>
 					</button>
 					<button class="tool-card wide" type="button" data-view="gitpatch">
 						<span class="tool-icon material-symbols-outlined">difference</span>
 						<span class="tool-card-title">Git Patch</span>
 						<span class="tool-card-copy">Extract raw .patch files from GitHub commit URLs for git apply.</span>
-						<span class="tool-link">Launch Tool <span class="material-symbols-outlined">arrow_forward</span></span>
+						<span class="tool-link">Launch Tool <md-icon>arrow_forward</md-icon></span>
 						<span class="tool-watermark material-symbols-outlined">integration_instructions</span>
 					</button>
 				</div>
@@ -63,32 +63,28 @@
 				</div>
 				<div class="panel">
 					<form id="mapper-form" class="form-stack">
-						<div class="floating-field with-action">
-							<input type="text" id="mapper-url" list="mapper-datalist" placeholder="https://github.com/..." autocomplete="url" />
-							<label for="mapper-url">Repository URL</label>
+						<div class="field-with-action">
+							<md-filled-text-field type="url" id="mapper-url" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-filled-text-field>
 							<datalist id="mapper-datalist"></datalist>
-							<button type="button" id="mapper-fav-btn" class="favorite-button hidden" title="Toggle favorite" aria-label="Toggle favorite"><span class="material-symbols-outlined">star</span></button>
+							<md-icon-button type="button" id="mapper-fav-btn" class="favorite-button hidden" title="Toggle favorite" aria-label="Toggle favorite"><md-icon>star</md-icon></md-icon-button>
 						</div>
 						<div class="settings-row">
-							<button type="button" class="text-button" data-token-toggle="mapper"><span class="material-symbols-outlined">settings</span><span id="mapper-token-label">Token Settings</span></button>
+							<md-text-button type="button" class="text-button" data-token-toggle="mapper"><md-icon slot="icon">settings</md-icon><span id="mapper-token-label">Token Settings</span></md-text-button>
 							<div class="segmented" role="group" aria-label="Mapper output format">
-								<button type="button" id="btn-format-ascii" data-format="ascii" class="selected"><span class="material-symbols-outlined">terminal</span>ASCII</button>
-								<button type="button" id="btn-format-paths" data-format="paths"><span class="material-symbols-outlined">view_list</span>Paths</button>
+								<md-outlined-button type="button" id="btn-format-ascii" data-format="ascii" class="selected"><md-icon slot="icon">terminal</md-icon>ASCII</md-outlined-button>
+								<md-outlined-button type="button" id="btn-format-paths" data-format="paths"><md-icon slot="icon">view_list</md-icon>Paths</md-outlined-button>
 							</div>
 						</div>
-						<div id="mapper-token-container" class="floating-field hidden">
-							<input type="password" id="mapper-token" placeholder="github_pat_..." autocomplete="off" />
-							<label for="mapper-token">Access Token (Optional)</label>
-						</div>
+						<md-filled-text-field id="mapper-token" class="hidden" type="password" label="Access Token (Optional)" placeholder="github_pat_..." autocomplete="off"></md-filled-text-field>
 						<div class="form-actions">
-							<button type="submit" id="mapper-submit" class="primary-button"><span class="material-symbols-outlined">terminal</span><span>Generate Map</span></button>
+							<md-filled-button type="submit" id="mapper-submit" class="primary-button"><md-icon slot="icon">terminal</md-icon><span>Generate Map</span></md-filled-button>
 						</div>
 					</form>
 				</div>
-				<div id="mapper-error" class="error-box hidden"><span class="material-symbols-outlined">error</span><span id="mapper-error-text"></span></div>
+				<div id="mapper-error" class="error-box hidden"><md-icon>error</md-icon><span id="mapper-error-text"></span></div>
 				<div id="mapper-result" class="result-stack hidden">
-					<div class="result-toolbar"><div class="stat-row"><span><b id="mapper-stats-folders">0</b> Folders</span><span><b id="mapper-stats-files">0</b> Files</span></div><button type="button" id="mapper-copy-btn" class="secondary-button"><span class="material-symbols-outlined">content_copy</span><span>Copy Code</span></button></div>
-					<div class="code-panel"><div class="code-title"><span class="material-symbols-outlined">description</span><span>OUTPUT</span></div><pre><code id="mapper-code"></code></pre></div>
+					<div class="result-toolbar"><div class="stat-row"><span><b id="mapper-stats-folders">0</b> Folders</span><span><b id="mapper-stats-files">0</b> Files</span></div><md-outlined-button type="button" id="mapper-copy-btn" class="secondary-button"><md-icon slot="icon">content_copy</md-icon><span>Copy Code</span></md-outlined-button></div>
+					<div class="code-panel"><div class="code-title"><md-icon>description</md-icon><span>OUTPUT</span></div><pre><code id="mapper-code"></code></pre></div>
 				</div>
 			</section>
 
@@ -98,29 +94,29 @@
 					<p>Visualize download counts and assets for GitHub releases.</p>
 				</div>
 				<div class="panel"><form id="releases-form" class="form-stack">
-					<div class="floating-field with-action"><input type="text" id="releases-url" list="releases-datalist" placeholder="https://github.com/..." autocomplete="url" /><label for="releases-url">Repository URL</label><datalist id="releases-datalist"></datalist><button type="button" id="releases-fav-btn" class="favorite-button hidden" title="Toggle favorite" aria-label="Toggle favorite"><span class="material-symbols-outlined">star</span></button></div>
-					<div class="settings-row"><button type="button" class="text-button" data-token-toggle="releases"><span class="material-symbols-outlined">settings</span><span id="releases-token-label">Token Settings</span></button></div>
-					<div id="releases-token-container" class="floating-field hidden"><input type="password" id="releases-token" placeholder="github_pat_..." autocomplete="off" /><label for="releases-token">Access Token (Optional)</label></div>
-					<div class="form-actions"><button type="submit" id="releases-submit" class="primary-button"><span class="material-symbols-outlined">analytics</span><span>Analyze</span></button></div>
+					<div class="field-with-action"><md-filled-text-field type="url" id="releases-url" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-filled-text-field><datalist id="releases-datalist"></datalist><md-icon-button type="button" id="releases-fav-btn" class="favorite-button hidden" title="Toggle favorite" aria-label="Toggle favorite"><md-icon>star</md-icon></md-icon-button></div>
+					<div class="settings-row"><md-text-button type="button" class="text-button" data-token-toggle="releases"><md-icon slot="icon">settings</md-icon><span id="releases-token-label">Token Settings</span></md-text-button></div>
+					<md-filled-text-field id="releases-token" class="hidden" type="password" label="Access Token (Optional)" placeholder="github_pat_..." autocomplete="off"></md-filled-text-field>
+					<div class="form-actions"><md-filled-button type="submit" id="releases-submit" class="primary-button"><md-icon slot="icon">analytics</md-icon><span>Analyze</span></md-filled-button></div>
 				</form></div>
-				<div id="releases-error" class="error-box hidden"><span class="material-symbols-outlined">error</span><span id="releases-error-text"></span></div>
+				<div id="releases-error" class="error-box hidden"><md-icon>error</md-icon><span id="releases-error-text"></span></div>
 				<div id="releases-result" class="release-grid hidden">
-					<div class="panel detail-panel"><div><p class="eyebrow">Selected Release</p><h3 id="rel-detail-name"></h3><div class="release-meta"><span class="material-symbols-outlined">label</span><span id="rel-detail-tag"></span><span>•</span><span id="rel-detail-date"></span></div></div><div class="download-total"><span>Downloads</span><strong id="rel-detail-downloads"></strong></div><div class="list-section"><p class="eyebrow">Assets</p><div id="rel-assets-list" class="asset-list"></div></div></div>
-					<div class="panel detail-panel"><div class="total-header"><div><p class="eyebrow">Total Project Downloads</p><h3 id="rel-total-downloads"></h3></div><span class="material-symbols-outlined total-icon">download</span></div><div class="list-section"><div class="list-heading"><p class="eyebrow">All Releases</p><p id="rel-count"></p></div><div id="rel-list" class="release-list"></div></div></div>
+					<div class="panel detail-panel"><div><p class="eyebrow">Selected Release</p><h3 id="rel-detail-name"></h3><div class="release-meta"><md-icon>label</md-icon><span id="rel-detail-tag"></span><span>•</span><span id="rel-detail-date"></span></div></div><div class="download-total"><span>Downloads</span><strong id="rel-detail-downloads"></strong></div><div class="list-section"><p class="eyebrow">Assets</p><div id="rel-assets-list" class="asset-list"></div></div></div>
+					<div class="panel detail-panel"><div class="total-header"><div><p class="eyebrow">Total Project Downloads</p><h3 id="rel-total-downloads"></h3></div><md-icon class="total-icon">download</md-icon></div><div class="list-section"><div class="list-heading"><p class="eyebrow">All Releases</p><p id="rel-count"></p></div><div id="rel-list" class="release-list"></div></div></div>
 				</div>
 			</section>
 
 			<section id="view-gitpatch" class="view-section" aria-labelledby="patch-heading">
 				<div class="section-heading"><h2 id="patch-heading">Git Patch</h2><p>Extract raw .patch files from commits for git apply.</p></div>
-				<div class="panel"><form id="patch-form" class="form-stack"><div class="floating-field"><input type="text" id="patch-url" placeholder="https://github.com/..." autocomplete="url" /><label for="patch-url">Commit URL</label></div><div class="form-actions"><button type="submit" id="patch-submit" class="primary-button"><span class="material-symbols-outlined">difference</span><span>Get Patch</span></button></div></form></div>
-				<div id="patch-error" class="error-box hidden"><span class="material-symbols-outlined">error</span><span id="patch-error-text"></span></div>
-				<div id="patch-result" class="result-stack hidden"><div class="result-toolbar"><span class="ready-badge"><span class="material-symbols-outlined">check</span>Ready to Apply</span><div class="button-row"><button type="button" id="patch-download-btn" class="secondary-button"><span class="material-symbols-outlined">download</span>Download</button><button type="button" id="patch-copy-btn" class="secondary-button"><span class="material-symbols-outlined">content_copy</span><span>Copy</span></button></div></div><div class="code-panel"><div class="code-title"><span class="material-symbols-outlined">integration_instructions</span><span>PATCH</span></div><pre><code id="patch-code"></code></pre></div></div>
+				<div class="panel"><form id="patch-form" class="form-stack"><md-filled-text-field type="url" id="patch-url" label="Commit URL" placeholder="https://github.com/..." autocomplete="url"></md-filled-text-field><div class="form-actions"><md-filled-button type="submit" id="patch-submit" class="primary-button"><md-icon slot="icon">difference</md-icon><span>Get Patch</span></md-filled-button></div></form></div>
+				<div id="patch-error" class="error-box hidden"><md-icon>error</md-icon><span id="patch-error-text"></span></div>
+				<div id="patch-result" class="result-stack hidden"><div class="result-toolbar"><span class="ready-badge"><md-icon>check</md-icon>Ready to Apply</span><div class="button-row"><md-outlined-button type="button" id="patch-download-btn" class="secondary-button"><md-icon slot="icon">download</md-icon>Download</md-outlined-button><md-outlined-button type="button" id="patch-copy-btn" class="secondary-button"><md-icon slot="icon">content_copy</md-icon><span>Copy</span></md-outlined-button></div></div><div class="code-panel"><div class="code-title"><md-icon>integration_instructions</md-icon><span>PATCH</span></div><pre><code id="patch-code"></code></pre></div></div>
 			</section>
 
 			<section id="view-favorites" class="view-section" aria-labelledby="favorites-heading">
 				<div class="section-heading"><h2 id="favorites-heading">Favorites</h2><p>Quick access to your saved repositories.</p></div>
 				<div id="favorites-grid" class="favorites-grid"></div>
-				<div id="favorites-empty" class="empty-state hidden"><div><span class="material-symbols-outlined">star_border</span></div><h2>No favorites yet</h2><p>Star repositories in RepoMapper or Release Stats to save them here.</p></div>
+				<div id="favorites-empty" class="empty-state hidden"><div><md-icon>star_border</md-icon></div><h2>No favorites yet</h2><p>Star repositories in RepoMapper or Release Stats to save them here.</p></div>
 			</section>
 		</div>
 	</main>
