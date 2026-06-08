@@ -1,7 +1,6 @@
-import RepoMapperApp from "./components/RepoMapperApp/RepoMapperApp";
+import DataManager from "./data/DataManager";
 import WebComponentLoader from "./lib/components/WebComponentLoader";
 import GlobalState from "./lib/state/GlobalState";
-import DataManager from "./data/DataManager";
 
 const app = () => {
 	"use strict";
@@ -12,7 +11,7 @@ const app = () => {
 		.then(() => onApplicationStart());
 
 	function onApplicationStart() {
-		document.querySelector<HTMLDivElement>("#app")!.append(new RepoMapperApp());
+		document.querySelector<HTMLDivElement>("#app")!.append(document.createElement("repo-mapper-app"));
 	}
 };
 

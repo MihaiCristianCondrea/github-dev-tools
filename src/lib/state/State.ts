@@ -7,17 +7,9 @@ import { Observable } from "../events/Observable";
 // Wrapper class to make any object/primitive observable
 
 // Usage:
-// 1. create a new State object: new State(data)
-// 2. to listen for changes, call addEventListener(State.STATE_CHANGE_EVENT, callback) on the State object
-// 3. to get the value of the State object, call exampleState.value
-// 4. to set the value of the State object, call exampleState.value = newValue
-
-// Example:
-// import { State } from "./State";
-// let exampleState = new State("some data");
-// exampleState.addEventListener(State.STATE_CHANGE_EVENT, (data) => {...}) // listen for State.STATE_CHANGE_EVENT events
-// console.log(exampleState.value) // get the value of the State object and print it (-> "some data")
-// exampleState.value = "new data" // set the value of the State object (-> automatically notifies all listeners)
+// 1. Create a new State object with the data to observe.
+// 2. Listen for State.STATE_CHANGE_EVENT on the State object.
+// 3. Read or replace the current data through the value property.
 
 export default class State<T> extends Observable {
 	static STATE_CHANGE_EVENT = "change";

@@ -5,7 +5,7 @@
 // This class is used to create your custom web components.
 
 // Usage:
-// -> Example can be found in the src/components/ExampleComponent.ts
+// -> Extend this class from a component under src/components and provide HTML/CSS strings.
 
 export default abstract class WebComponent extends HTMLElement {
 	html: string;
@@ -23,7 +23,7 @@ export default abstract class WebComponent extends HTMLElement {
 	abstract onConnected(): void;
 
 	// Returns the HTML tag name of the component
-	// Example: A component <example-component /> would return "example-component"
+	// The returned value is the custom element name registered in the browser.
 	abstract get htmlTagName(): string;
 
 	// Wrapper for making dispatchEvent consistent with the Observer pattern

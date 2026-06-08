@@ -1,5 +1,4 @@
 import State from "./State";
-import DataManager from "../../data/DataManager";
 
 // ====================================================== //
 // ===================== GlobalState ===================== //
@@ -12,15 +11,6 @@ import DataManager from "../../data/DataManager";
 // - Use GlobalState.addModel() to add states to the store
 // - Use GlobalState.findModel(), GlobalState.findModels() and GlobalState.getModelById() retrieve states from the store
 
-// Example:
-// import GlobalState from "./data/GlobalState";
-// GlobalState.init();
-// GlobalState.addState(new State("hi there"));
-// const retrievedState = GlobalState.findState(
-// 	(state) => state.value === "hi there",
-// 	string
-// );
-
 export default class GlobalState {
 	private static _states: Map<string, State<any>> = new Map<
 		string,
@@ -29,9 +19,8 @@ export default class GlobalState {
 
 	// This function is used to initialize all states.
 	// It should be called at the start of the application.
-	public static async init() {
-		const exampleModel = await DataManager.getExampleModel();
-		this.addState(exampleModel.toState());
+	public static async init(): Promise<void> {
+		this._states.clear();
 	}
 
 	// Adds a state to the store.
@@ -45,8 +34,7 @@ export default class GlobalState {
 	}
 
 	// Returns a state from the store, that matches the given predicate.
-	// Example: GlobalState.findModel(state => state.name === "John", ExampleModel)
-	public static findState<T, S extends State<T>>(
+		public static findState<T, S extends State<T>>(
 		predicate: (value: T) => boolean,
 		classConstructor: new (...args: any[]) => T
 	): S | undefined {

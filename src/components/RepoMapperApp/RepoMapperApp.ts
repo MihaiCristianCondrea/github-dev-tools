@@ -1,87 +1,32 @@
+import DataManager from "../../data/DataManager";
+import type { FavoriteRepository, RepositoryRef } from "../../domain/models/Repository";
+import { repositoryUrl } from "../../domain/models/Repository";
+import type { PatchFile } from "../../domain/models/PatchFile";
+import type { ProcessedRelease, ReleaseAsset, ReleaseStats } from "../../domain/models/ReleaseStats";
+import type { RepositoryMapFormat, RepositoryTreeItem } from "../../domain/models/RepositoryTree";
+import GitHubUrlParser from "../../domain/services/GitHubUrlParser";
+import RepositoryMapBuilder from "../../domain/services/RepositoryMapBuilder";
 import WebComponent from "../../lib/components/WebComponent";
 import css from "./RepoMapperApp.css?raw";
 import html from "./RepoMapperApp.html";
 
 type ViewId = "home" | "favorites" | "mapper" | "releases" | "gitpatch";
-type MapperFormat = "ascii" | "paths";
-
-type ParsedRepo = {
-	owner: string;
-	repo: string;
-};
-
-type FavoriteRepo = ParsedRepo & {
-	timestamp: number;
-};
-
-type GithubTreeItem = {
-	path: string;
-	type: "blob" | "tree" | string;
-};
-
-type GithubTreeResponse = {
-	tree: GithubTreeItem[];
-	truncated?: boolean;
-};
-
-type GithubRepoResponse = {
-	default_branch: string;
-};
-
-type GithubAssetResponse = {
-	name: string;
-	download_count: number;
-};
-
-type GithubReleaseResponse = {
-	name: string | null;
-	tag_name: string;
-	published_at: string | null;
-	assets: GithubAssetResponse[];
-};
-
-type ReleaseAsset = {
-	name: string;
-	downloads: number;
-};
-
-type ProcessedRelease = {
-	name: string;
-	tagName: string;
-	date: string | null;
-	downloads: number;
-	assets: ReleaseAsset[];
-};
-
-type ReleaseState = {
-	total: number;
-	releases: ProcessedRelease[];
-};
-
-interface DirectoryNode {
-	[key: string]: DirectoryNode | null;
-}
 
 type AppState = {
 	currentView: ViewId;
-	favorites: FavoriteRepo[];
+	favorites: FavoriteRepository[];
 	mapper: {
-		format: MapperFormat;
-		rawPaths: GithubTreeItem[];
-		parsedRepo: ParsedRepo | null;
+		format: RepositoryMapFormat;
+		rawPaths: RepositoryTreeItem[];
+		parsedRepo: RepositoryRef | null;
 	};
 	releases: {
-		data: ReleaseState | null;
+		data: ReleaseStats | null;
 		selectedIndex: number;
-		parsedRepo: ParsedRepo | null;
+		parsedRepo: RepositoryRef | null;
 	};
-	patch: {
-		content: string;
-		filename: string;
-	};
+	patch: PatchFile;
 };
-
-const STORAGE_KEY = "repomapper_favorites";
 
 export default class RepoMapperApp extends WebComponent {
 	private state: AppState = {
@@ -116,7 +61,7 @@ export default class RepoMapperApp extends WebComponent {
 		this.bindNavigation();
 		this.bindForms();
 		this.bindFavorites();
-		this.bindMapperFormatControls();
+		this.bindRepositoryMapFormatControls();
 		this.bindPatchActions();
 		this.renderFavorites();
 		this.renderHomeFavorites();
@@ -158,9 +103,9 @@ export default class RepoMapperApp extends WebComponent {
 		this.select("#releases-fav-btn")?.addEventListener("click", () => this.toggleFavoriteCurrent("releases"));
 	}
 
-	private bindMapperFormatControls(): void {
+	private bindRepositoryMapFormatControls(): void {
 		this.selectAll<HTMLButtonElement>("[data-format]").forEach((button) => {
-			button.addEventListener("click", () => this.setMapperFormat(button.dataset.format as MapperFormat));
+			button.addEventListener("click", () => this.setRepositoryMapFormat(button.dataset.format as RepositoryMapFormat));
 		});
 		this.select("#mapper-copy-btn")?.addEventListener("click", () => this.copyMapperOutput());
 	}
@@ -203,19 +148,11 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private loadFavorites(): void {
-		const stored = window.localStorage.getItem(STORAGE_KEY);
-		if (!stored) return;
-		try {
-			const parsed = JSON.parse(stored) as FavoriteRepo[];
-			this.state.favorites = Array.isArray(parsed) ? parsed : [];
-		} catch (error) {
-			console.error("Failed to load favorites", error);
-			this.state.favorites = [];
-		}
+		this.state.favorites = DataManager.favorites.load();
 	}
 
 	private saveFavorites(): void {
-		window.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state.favorites));
+		DataManager.favorites.save(this.state.favorites);
 		this.renderFavorites();
 		this.renderHomeFavorites();
 		this.setupDatalists();
@@ -223,23 +160,15 @@ export default class RepoMapperApp extends WebComponent {
 		if (this.state.currentView === "releases") this.handleUrlInput("releases");
 	}
 
-	private isFavorite(owner: string, repo: string): boolean {
-		return this.state.favorites.some(
-			(favorite) => favorite.owner.toLowerCase() === owner.toLowerCase() && favorite.repo.toLowerCase() === repo.toLowerCase()
-		);
+	private isFavorite(repository: RepositoryRef): boolean {
+		return DataManager.favorites.isFavorite(this.state.favorites, repository);
 	}
 
 	private toggleFavoriteCurrent(view: "mapper" | "releases"): void {
 		const parsed = view === "mapper" ? this.state.mapper.parsedRepo : this.state.releases.parsedRepo;
 		if (!parsed) return;
 
-		if (this.isFavorite(parsed.owner, parsed.repo)) {
-			this.state.favorites = this.state.favorites.filter(
-				(favorite) => !(favorite.owner.toLowerCase() === parsed.owner.toLowerCase() && favorite.repo.toLowerCase() === parsed.repo.toLowerCase())
-			);
-		} else {
-			this.state.favorites = [{ owner: parsed.owner, repo: parsed.repo, timestamp: Date.now() }, ...this.state.favorites];
-		}
+		this.state.favorites = DataManager.favorites.toggle(this.state.favorites, parsed);
 		this.saveFavorites();
 	}
 
@@ -258,7 +187,7 @@ export default class RepoMapperApp extends WebComponent {
 		this.state.favorites.forEach((favorite) => grid.append(this.createFavoriteCard(favorite)));
 	}
 
-	private createFavoriteCard(favorite: FavoriteRepo): HTMLElement {
+	private createFavoriteCard(favorite: FavoriteRepository): HTMLElement {
 		const card = document.createElement("article");
 		card.className = "favorite-card";
 
@@ -289,8 +218,8 @@ export default class RepoMapperApp extends WebComponent {
 		const actions = document.createElement("div");
 		actions.className = "favorite-card-actions";
 		actions.append(
-			this.createFavoriteAction("terminal", "Map", () => this.navigateTo("mapper", this.repoUrl(favorite))),
-			this.createFavoriteAction("bar_chart", "Stats", () => this.navigateTo("releases", this.repoUrl(favorite)))
+			this.createFavoriteAction("terminal", "Map", () => this.navigateTo("mapper", repositoryUrl(favorite))),
+			this.createFavoriteAction("bar_chart", "Stats", () => this.navigateTo("releases", repositoryUrl(favorite)))
 		);
 		card.append(header, actions);
 		return card;
@@ -323,7 +252,7 @@ export default class RepoMapperApp extends WebComponent {
 			const icon = this.createIcon("star");
 			icon.classList.add("filled-icon");
 			button.append(icon, document.createTextNode(favorite.repo));
-			button.addEventListener("click", () => this.navigateTo("releases", this.repoUrl(favorite)));
+			button.addEventListener("click", () => this.navigateTo("releases", repositoryUrl(favorite)));
 			list.append(button);
 		});
 		const seeAll = document.createElement("button");
@@ -335,7 +264,7 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private setupDatalists(): void {
-		const options = this.state.favorites.map((favorite) => this.repoUrl(favorite));
+		const options = this.state.favorites.map((favorite) => repositoryUrl(favorite));
 		["#mapper-datalist", "#releases-datalist"].forEach((selector) => {
 			const datalist = this.select<HTMLDataListElement>(selector);
 			if (!datalist) return;
@@ -348,27 +277,11 @@ export default class RepoMapperApp extends WebComponent {
 		});
 	}
 
-	private parseGithubUrl(inputUrl: string): ParsedRepo | null {
-		const match = inputUrl.trim().replace(/\/$/, "").match(/github\.com\/([^/\s]+)\/([^/\s#?]+)/i);
-		if (!match) return null;
-		return { owner: match[1], repo: match[2].replace(/\.git$/i, "") };
-	}
-
-	private parseGithubCommitUrl(inputUrl: string): { owner: string; repo: string; sha: string; apiUrl: string } | null {
-		const cleanUrl = inputUrl.trim().replace(/\/$/, "");
-		const match = cleanUrl.match(/github\.com\/([^/]+)\/([^/]+)\/commit\/([a-fA-F0-9]+)/);
-		if (!match) return null;
-		const owner = match[1];
-		const repo = match[2].replace(/\.git$/i, "");
-		const sha = match[3];
-		return { owner, repo, sha, apiUrl: `https://api.github.com/repos/${owner}/${repo}/commits/${sha}` };
-	}
-
 	private handleUrlInput(view: "mapper" | "releases"): void {
 		const input = this.select<HTMLInputElement>(`#${view}-url`);
 		const button = this.select<HTMLButtonElement>(`#${view}-fav-btn`);
 		if (!input || !button) return;
-		const parsed = this.parseGithubUrl(input.value);
+		const parsed = GitHubUrlParser.parseRepositoryUrl(input.value);
 
 		if (view === "mapper") this.state.mapper.parsedRepo = parsed;
 		if (view === "releases") this.state.releases.parsedRepo = parsed;
@@ -376,7 +289,7 @@ export default class RepoMapperApp extends WebComponent {
 		button.classList.toggle("hidden", !parsed);
 		const icon = button.querySelector("md-icon, .material-symbols-outlined");
 		if (!parsed || !icon) return;
-		const active = this.isFavorite(parsed.owner, parsed.repo);
+		const active = this.isFavorite(parsed);
 		button.classList.toggle("active", active);
 		icon.classList.toggle("filled-icon", active);
 	}
@@ -390,7 +303,7 @@ export default class RepoMapperApp extends WebComponent {
 		label.textContent = shouldShow ? "Hide Settings" : "Token Settings";
 	}
 
-	private setMapperFormat(format: MapperFormat): void {
+	private setRepositoryMapFormat(format: RepositoryMapFormat): void {
 		this.state.mapper.format = format;
 		this.select("#btn-format-ascii")?.classList.toggle("selected", format === "ascii");
 		this.select("#btn-format-paths")?.classList.toggle("selected", format === "paths");
@@ -402,7 +315,7 @@ export default class RepoMapperApp extends WebComponent {
 		const url = this.select<HTMLInputElement>("#mapper-url")?.value ?? "";
 		const token = this.select<HTMLInputElement>("#mapper-token")?.value ?? "";
 		const result = this.select("#mapper-result");
-		const parsed = this.parseGithubUrl(url);
+		const parsed = GitHubUrlParser.parseRepositoryUrl(url);
 
 		this.hideError("mapper");
 		result?.classList.add("hidden");
@@ -415,17 +328,11 @@ export default class RepoMapperApp extends WebComponent {
 		}
 
 		try {
-			const headers = this.githubHeaders(token);
-			const repoData = await this.fetchJson<GithubRepoResponse>(`https://api.github.com/repos/${parsed.owner}/${parsed.repo}`, headers, "Repo not found");
-			const treeData = await this.fetchJson<GithubTreeResponse>(
-				`https://api.github.com/repos/${parsed.owner}/${parsed.repo}/git/trees/${encodeURIComponent(repoData.default_branch)}?recursive=1`,
-				headers,
-				"Failed to fetch tree"
-			);
-			this.state.mapper.rawPaths = treeData.tree ?? [];
+			const tree = await DataManager.github.getRepositoryTree(parsed, token);
+			this.state.mapper.rawPaths = tree.items;
 			this.renderMapperOutput();
 			result?.classList.remove("hidden");
-			if (treeData.truncated) this.showError("mapper", "Repo is massive, output was truncated by the GitHub API.");
+			if (tree.truncated) this.showError("mapper", "Repo is massive, output was truncated by the GitHub API.");
 		} catch (error) {
 			this.showError("mapper", this.errorMessage(error));
 		} finally {
@@ -434,55 +341,10 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private renderMapperOutput(): void {
-		const paths = this.state.mapper.rawPaths;
-		let output = "";
-		let files = 0;
-		let folders = 0;
-
-		if (this.state.mapper.format === "ascii") {
-			const structure: DirectoryNode = {};
-			paths.forEach((item) => {
-				if (item.type === "blob") files += 1;
-				if (item.type === "tree") folders += 1;
-				const parts = item.path.split("/").filter(Boolean);
-				let current = structure;
-				parts.forEach((part, index) => {
-					const isLeaf = index === parts.length - 1;
-					if (!(part in current)) current[part] = isLeaf && item.type === "blob" ? null : {};
-					const next = current[part];
-					if (next !== null) current = next;
-				});
-			});
-			output = this.buildDirectoryString(structure);
-		} else {
-			paths.forEach((path) => {
-				if (path.type === "blob") files += 1;
-				if (path.type === "tree") folders += 1;
-			});
-			output = paths.map((path) => path.path).join("\n");
-		}
-
-		this.select("#mapper-code")!.textContent = output;
-		this.select("#mapper-stats-files")!.textContent = String(files);
-		this.select("#mapper-stats-folders")!.textContent = String(folders);
-	}
-
-	private buildDirectoryString(structure: DirectoryNode, prefix = ""): string {
-		const keys = Object.keys(structure).sort((a, b) => {
-			const aIsFolder = structure[a] !== null;
-			const bIsFolder = structure[b] !== null;
-			if (aIsFolder && !bIsFolder) return -1;
-			if (!aIsFolder && bIsFolder) return 1;
-			return a.localeCompare(b);
-		});
-		return keys
-			.map((key, index) => {
-				const isLast = index === keys.length - 1;
-				const child = structure[key];
-				const line = `${prefix}${isLast ? "└── " : "├── "}${key}`;
-				return child === null ? line : `${line}\n${this.buildDirectoryString(child, prefix + (isLast ? "    " : "│   "))}`;
-			})
-			.join("\n");
+		const result = RepositoryMapBuilder.build(this.state.mapper.rawPaths, this.state.mapper.format);
+		this.select("#mapper-code")!.textContent = result.output;
+		this.select("#mapper-stats-files")!.textContent = String(result.files);
+		this.select("#mapper-stats-folders")!.textContent = String(result.folders);
 	}
 
 	private async handleReleasesSubmit(event: SubmitEvent): Promise<void> {
@@ -490,7 +352,7 @@ export default class RepoMapperApp extends WebComponent {
 		const url = this.select<HTMLInputElement>("#releases-url")?.value ?? "";
 		const token = this.select<HTMLInputElement>("#releases-token")?.value ?? "";
 		const result = this.select("#releases-result");
-		const parsed = this.parseGithubUrl(url);
+		const parsed = GitHubUrlParser.parseRepositoryUrl(url);
 
 		this.hideError("releases");
 		result?.classList.add("hidden");
@@ -503,28 +365,7 @@ export default class RepoMapperApp extends WebComponent {
 		}
 
 		try {
-			const releases = await this.fetchJson<GithubReleaseResponse[]>(
-				`https://api.github.com/repos/${parsed.owner}/${parsed.repo}/releases?per_page=100`,
-				this.githubHeaders(token),
-				"Repo not found"
-			);
-			if (releases.length === 0) throw new Error("No releases found");
-			let total = 0;
-			const processed = releases.map((release) => {
-				const downloads = release.assets.reduce((sum, asset) => sum + asset.download_count, 0);
-				total += downloads;
-				return {
-					name: release.name || release.tag_name,
-					tagName: release.tag_name,
-					date: release.published_at,
-					downloads,
-					assets: release.assets
-						.map((asset) => ({ name: asset.name, downloads: asset.download_count }))
-						.sort((a, b) => b.downloads - a.downloads),
-				};
-			});
-
-			this.state.releases.data = { total, releases: processed };
+			this.state.releases.data = await DataManager.github.getReleaseStats(parsed, token);
 			this.state.releases.selectedIndex = 0;
 			this.renderReleases();
 			result?.classList.remove("hidden");
@@ -597,7 +438,7 @@ export default class RepoMapperApp extends WebComponent {
 		event.preventDefault();
 		const url = this.select<HTMLInputElement>("#patch-url")?.value ?? "";
 		const result = this.select("#patch-result");
-		const parsed = this.parseGithubCommitUrl(url);
+		const parsed = GitHubUrlParser.parseCommitUrl(url);
 
 		this.hideError("patch");
 		result?.classList.add("hidden");
@@ -610,12 +451,7 @@ export default class RepoMapperApp extends WebComponent {
 		}
 
 		try {
-			const response = await fetch(parsed.apiUrl, {
-				headers: { Accept: "application/vnd.github.v3.patch" },
-			});
-			if (!response.ok) throw new Error("Failed to fetch patch");
-			this.state.patch.content = await response.text();
-			this.state.patch.filename = `${parsed.repo}-${parsed.sha.substring(0, 7)}.patch`;
+			this.state.patch = await DataManager.github.getCommitPatch(parsed);
 			this.select("#patch-code")!.textContent = this.state.patch.content;
 			result?.classList.remove("hidden");
 		} catch (error) {
@@ -658,18 +494,6 @@ export default class RepoMapperApp extends WebComponent {
 		URL.revokeObjectURL(href);
 	}
 
-	private async fetchJson<T>(url: string, headers: Record<string, string>, notFoundMessage: string): Promise<T> {
-		const response = await fetch(url, { headers });
-		if (!response.ok) throw new Error(response.status === 404 ? notFoundMessage : `GitHub API error (${response.status})`);
-		return (await response.json()) as T;
-	}
-
-	private githubHeaders(token: string): Record<string, string> {
-		const headers: Record<string, string> = { Accept: "application/vnd.github.v3+json" };
-		if (token.trim()) headers.Authorization = `token ${token.trim()}`;
-		return headers;
-	}
-
 	private showError(scope: "mapper" | "releases" | "patch", message: string): void {
 		this.select(`#${scope}-error-text`)!.textContent = message;
 		this.select(`#${scope}-error`)!.classList.remove("hidden");
@@ -701,10 +525,6 @@ export default class RepoMapperApp extends WebComponent {
 		const icon = document.createElement("md-icon");
 		icon.textContent = name;
 		return icon;
-	}
-
-	private repoUrl(repo: ParsedRepo): string {
-		return `https://github.com/${repo.owner}/${repo.repo}`;
 	}
 
 	private errorMessage(error: unknown): string {
