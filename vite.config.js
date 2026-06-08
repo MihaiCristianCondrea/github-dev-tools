@@ -14,5 +14,5 @@ export default defineConfig({
 		}),
 		GlobPlugin(), // plugin needed by WebComponentLoader to import all modules automatically
 	],
-	base: "/web-components-ts/",
+	base: "/github-dev-tools/",
 });
