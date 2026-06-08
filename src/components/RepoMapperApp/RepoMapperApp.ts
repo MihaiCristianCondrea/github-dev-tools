@@ -620,29 +620,22 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private async copyMapperOutput(): Promise<void> {
-		await this.copyText(this.select("#mapper-code")?.textContent ?? "", "#mapper-copy-btn", "Copy Code");
+		await this.copyTextWithFeedback(this.select("#mapper-code")?.textContent ?? "", "#mapper-copy-btn");
 	}
 
 	private async copyPatchOutput(): Promise<void> {
-		if (!this.state.patch.content) return;
-		await navigator.clipboard.writeText(this.state.patch.content);
-		const button = this.select<HTMLButtonElement>("#patch-copy-btn");
+		await this.copyTextWithFeedback(this.state.patch.content, "#patch-copy-btn");
+	}
+
+	private async copyTextWithFeedback(text: string, buttonSelector: string): Promise<void> {
+		if (!text) return;
+		await navigator.clipboard.writeText(text);
+		const button = this.select<HTMLButtonElement>(buttonSelector);
 		if (!button) return;
 		const originalHtml = button.innerHTML;
 		button.innerHTML = `<span class="material-symbols-outlined copied">check_circle</span><span class="copied">Copied</span>`;
 		window.setTimeout(() => {
 			button.innerHTML = originalHtml;
-		}, 2000);
-	}
-
-	private async copyText(text: string, buttonSelector: string, resetLabel: string): Promise<void> {
-		if (!text) return;
-		await navigator.clipboard.writeText(text);
-		const button = this.select<HTMLButtonElement>(buttonSelector);
-		if (!button) return;
-		button.innerHTML = `<span class="material-symbols-outlined">check_circle</span><span>Copied</span>`;
-		window.setTimeout(() => {
-			button.innerHTML = `<span class="material-symbols-outlined">content_copy</span><span>${resetLabel}</span>`;
 		}, 2000);
 	}
 
