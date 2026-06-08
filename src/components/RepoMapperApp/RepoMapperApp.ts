@@ -77,7 +77,7 @@ type AppState = {
 	};
 	patch: {
 		content: string;
-		fileName: string;
+		filename: string;
 	};
 };
 
@@ -99,7 +99,7 @@ export default class RepoMapperApp extends WebComponent {
 		},
 		patch: {
 			content: "",
-			fileName: "commit.patch",
+			filename: "git.patch",
 		},
 	};
 
@@ -348,13 +348,14 @@ export default class RepoMapperApp extends WebComponent {
 		return { owner: match[1], repo: match[2].replace(/\.git$/i, "") };
 	}
 
-	private parseGithubCommitUrl(inputUrl: string): { owner: string; repo: string; sha: string; patchUrl: string } | null {
-		const match = inputUrl.trim().match(/github\.com\/([^/\s]+)\/([^/\s]+)\/commit\/([a-f0-9]{7,40})(?:\.patch)?(?:[?#].*)?$/i);
+	private parseGithubCommitUrl(inputUrl: string): { owner: string; repo: string; sha: string; apiUrl: string } | null {
+		const cleanUrl = inputUrl.trim().replace(/\/$/, "");
+		const match = cleanUrl.match(/github\.com\/([^/]+)\/([^/]+)\/commit\/([a-fA-F0-9]+)/);
 		if (!match) return null;
 		const owner = match[1];
 		const repo = match[2].replace(/\.git$/i, "");
 		const sha = match[3];
-		return { owner, repo, sha, patchUrl: `https://github.com/${owner}/${repo}/commit/${sha}.patch` };
+		return { owner, repo, sha, apiUrl: `https://api.github.com/repos/${owner}/${repo}/commits/${sha}` };
 	}
 
 	private handleUrlInput(view: "mapper" | "releases"): void {
@@ -594,19 +595,21 @@ export default class RepoMapperApp extends WebComponent {
 
 		this.hideError("patch");
 		result?.classList.add("hidden");
-		const resetButton = this.setLoading("#patch-submit", "Processing...", "progress_activity");
+		const resetButton = this.setLoading("#patch-submit", "Fetching...", "progress_activity");
 
 		if (!parsed) {
-			this.showError("patch", "Invalid GitHub commit URL");
+			this.showError("patch", "Invalid Commit URL");
 			resetButton();
 			return;
 		}
 
 		try {
-			const response = await fetch(parsed.patchUrl, { headers: { Accept: "text/plain" } });
-			if (!response.ok) throw new Error(response.status === 404 ? "Commit not found" : "Failed to fetch patch");
+			const response = await fetch(parsed.apiUrl, {
+				headers: { Accept: "application/vnd.github.v3.patch" },
+			});
+			if (!response.ok) throw new Error("Failed to fetch patch");
 			this.state.patch.content = await response.text();
-			this.state.patch.fileName = `${parsed.owner}-${parsed.repo}-${parsed.sha.slice(0, 12)}.patch`;
+			this.state.patch.filename = `${parsed.repo}-${parsed.sha.substring(0, 7)}.patch`;
 			this.select("#patch-code")!.textContent = this.state.patch.content;
 			result?.classList.remove("hidden");
 		} catch (error) {
@@ -621,7 +624,15 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private async copyPatchOutput(): Promise<void> {
-		await this.copyText(this.state.patch.content, "#patch-copy-btn", "Copy");
+		if (!this.state.patch.content) return;
+		await navigator.clipboard.writeText(this.state.patch.content);
+		const button = this.select<HTMLButtonElement>("#patch-copy-btn");
+		if (!button) return;
+		const originalHtml = button.innerHTML;
+		button.innerHTML = `<span class="material-symbols-outlined copied">check_circle</span><span class="copied">Copied</span>`;
+		window.setTimeout(() => {
+			button.innerHTML = originalHtml;
+		}, 2000);
 	}
 
 	private async copyText(text: string, buttonSelector: string, resetLabel: string): Promise<void> {
@@ -637,13 +648,15 @@ export default class RepoMapperApp extends WebComponent {
 
 	private downloadPatch(): void {
 		if (!this.state.patch.content) return;
-		const blob = new Blob([this.state.patch.content], { type: "text/x-patch;charset=utf-8" });
-		const url = URL.createObjectURL(blob);
+		const blob = new Blob([this.state.patch.content], { type: "text/plain" });
+		const href = URL.createObjectURL(blob);
 		const link = document.createElement("a");
-		link.href = url;
-		link.download = this.state.patch.fileName;
+		link.href = href;
+		link.download = this.state.patch.filename || "git.patch";
+		document.body.appendChild(link);
 		link.click();
-		URL.revokeObjectURL(url);
+		document.body.removeChild(link);
+		URL.revokeObjectURL(href);
 	}
 
 	private async fetchJson<T>(url: string, headers: Record<string, string>, notFoundMessage: string): Promise<T> {

@@ -120,6 +120,7 @@ button:disabled { cursor: wait; opacity: .72; }
 .secondary-button { padding: 10px 16px; background: var(--surface-variant); color: var(--text-color); }
 .secondary-button:hover { background: var(--selected); }
 .secondary-button .material-symbols-outlined { font-size: 18px; }
+.copied { color: #34d399; }
 .error-box { margin-top: 20px; display: flex; align-items: flex-start; gap: 12px; padding: 16px; border: 1px solid var(--error-outline); border-radius: 14px; background: rgb(96 20 16 / .4); color: var(--on-error-container); font-size: 14px; font-weight: 700; }
 .result-stack { margin-top: 24px; display: flex; flex-direction: column; gap: 16px; animation: slide-up .35s ease-out; }
 .stat-row { display: flex; flex-wrap: wrap; gap: 12px; }
