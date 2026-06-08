@@ -1,0 +1,702 @@
+import WebComponent from "../../lib/components/WebComponent";
+import css from "./RepoMapperApp.css";
+import html from "./RepoMapperApp.html";
+
+type ViewId = "home" | "favorites" | "mapper" | "releases" | "gitpatch";
+type MapperFormat = "ascii" | "paths";
+
+type ParsedRepo = {
+	owner: string;
+	repo: string;
+};
+
+type FavoriteRepo = ParsedRepo & {
+	timestamp: number;
+};
+
+type GithubTreeItem = {
+	path: string;
+	type: "blob" | "tree" | string;
+};
+
+type GithubTreeResponse = {
+	tree: GithubTreeItem[];
+	truncated?: boolean;
+};
+
+type GithubRepoResponse = {
+	default_branch: string;
+};
+
+type GithubAssetResponse = {
+	name: string;
+	download_count: number;
+};
+
+type GithubReleaseResponse = {
+	name: string | null;
+	tag_name: string;
+	published_at: string | null;
+	assets: GithubAssetResponse[];
+};
+
+type ReleaseAsset = {
+	name: string;
+	downloads: number;
+};
+
+type ProcessedRelease = {
+	name: string;
+	tagName: string;
+	date: string | null;
+	downloads: number;
+	assets: ReleaseAsset[];
+};
+
+type ReleaseState = {
+	total: number;
+	releases: ProcessedRelease[];
+};
+
+interface DirectoryNode {
+	[key: string]: DirectoryNode | null;
+}
+
+type AppState = {
+	currentView: ViewId;
+	favorites: FavoriteRepo[];
+	mapper: {
+		format: MapperFormat;
+		rawPaths: GithubTreeItem[];
+		parsedRepo: ParsedRepo | null;
+	};
+	releases: {
+		data: ReleaseState | null;
+		selectedIndex: number;
+		parsedRepo: ParsedRepo | null;
+	};
+	patch: {
+		content: string;
+		fileName: string;
+	};
+};
+
+const STORAGE_KEY = "repomapper_favorites";
+
+export default class RepoMapperApp extends WebComponent {
+	private state: AppState = {
+		currentView: "home",
+		favorites: [],
+		mapper: {
+			format: "ascii",
+			rawPaths: [],
+			parsedRepo: null,
+		},
+		releases: {
+			data: null,
+			selectedIndex: 0,
+			parsedRepo: null,
+		},
+		patch: {
+			content: "",
+			fileName: "commit.patch",
+		},
+	};
+
+	constructor() {
+		super(html, css);
+	}
+
+	get htmlTagName(): string {
+		return "repo-mapper-app";
+	}
+
+	onConnected(): void {
+		this.loadFavorites();
+		this.bindNavigation();
+		this.bindForms();
+		this.bindFavorites();
+		this.bindMapperFormatControls();
+		this.bindPatchActions();
+		this.renderFavorites();
+		this.renderHomeFavorites();
+		this.setupDatalists();
+		this.navigateTo("home", undefined, false);
+	}
+
+	private bindNavigation(): void {
+		this.select("#drawer-open")?.addEventListener("click", () => this.toggleDrawer(true));
+		this.select("#drawer-close")?.addEventListener("click", () => this.toggleDrawer(false));
+		this.select("#drawer-scrim")?.addEventListener("click", () => this.toggleDrawer(false));
+		this.selectAll<HTMLButtonElement>("[data-view]").forEach((button) => {
+			button.addEventListener("click", () => {
+				const view = button.dataset.view as ViewId;
+				this.navigateTo(view);
+			});
+		});
+	}
+
+	private bindForms(): void {
+		this.select<HTMLFormElement>("#mapper-form")?.addEventListener("submit", (event) => this.handleMapperSubmit(event));
+		this.select<HTMLFormElement>("#releases-form")?.addEventListener("submit", (event) => this.handleReleasesSubmit(event));
+		this.select<HTMLFormElement>("#patch-form")?.addEventListener("submit", (event) => this.handlePatchSubmit(event));
+		this.select<HTMLInputElement>("#mapper-url")?.addEventListener("input", () => this.handleUrlInput("mapper"));
+		this.select<HTMLInputElement>("#releases-url")?.addEventListener("input", () => this.handleUrlInput("releases"));
+		this.selectAll<HTMLButtonElement>("[data-token-toggle]").forEach((button) => {
+			button.addEventListener("click", () => this.toggleToken(button.dataset.tokenToggle as "mapper" | "releases"));
+		});
+	}
+
+	private bindFavorites(): void {
+		this.select("#mapper-fav-btn")?.addEventListener("click", () => this.toggleFavoriteCurrent("mapper"));
+		this.select("#releases-fav-btn")?.addEventListener("click", () => this.toggleFavoriteCurrent("releases"));
+	}
+
+	private bindMapperFormatControls(): void {
+		this.selectAll<HTMLButtonElement>("[data-format]").forEach((button) => {
+			button.addEventListener("click", () => this.setMapperFormat(button.dataset.format as MapperFormat));
+		});
+		this.select("#mapper-copy-btn")?.addEventListener("click", () => this.copyMapperOutput());
+	}
+
+	private bindPatchActions(): void {
+		this.select("#patch-copy-btn")?.addEventListener("click", () => this.copyPatchOutput());
+		this.select("#patch-download-btn")?.addEventListener("click", () => this.downloadPatch());
+	}
+
+	private toggleDrawer(forceOpen?: boolean): void {
+		const drawer = this.select("#drawer");
+		const scrim = this.select("#drawer-scrim");
+		const shouldOpen = forceOpen ?? !drawer?.classList.contains("open");
+		drawer?.classList.toggle("open", shouldOpen);
+		scrim?.classList.toggle("open", shouldOpen);
+	}
+
+	private navigateTo(viewId: ViewId, url?: string, closeDrawer = true): void {
+		this.state.currentView = viewId;
+		this.selectAll(".view-section").forEach((section) => section.classList.remove("active"));
+		this.select(`#view-${viewId}`)?.classList.add("active");
+
+		this.selectAll(".nav-item").forEach((item) => {
+			item.classList.remove("active");
+			item.querySelector(".material-symbols-outlined")?.classList.remove("filled-icon");
+		});
+		const activeNav = this.select(`#nav-${viewId}`);
+		activeNav?.classList.add("active");
+		activeNav?.querySelector(".material-symbols-outlined")?.classList.add("filled-icon");
+
+		if (url && viewId === "mapper") {
+			this.select<HTMLInputElement>("#mapper-url")!.value = url;
+			this.handleUrlInput("mapper");
+		}
+		if (url && viewId === "releases") {
+			this.select<HTMLInputElement>("#releases-url")!.value = url;
+			this.handleUrlInput("releases");
+		}
+		if (closeDrawer) this.toggleDrawer(false);
+	}
+
+	private loadFavorites(): void {
+		const stored = window.localStorage.getItem(STORAGE_KEY);
+		if (!stored) return;
+		try {
+			const parsed = JSON.parse(stored) as FavoriteRepo[];
+			this.state.favorites = Array.isArray(parsed) ? parsed : [];
+		} catch (error) {
+			console.error("Failed to load favorites", error);
+			this.state.favorites = [];
+		}
+	}
+
+	private saveFavorites(): void {
+		window.localStorage.setItem(STORAGE_KEY, JSON.stringify(this.state.favorites));
+		this.renderFavorites();
+		this.renderHomeFavorites();
+		this.setupDatalists();
+		if (this.state.currentView === "mapper") this.handleUrlInput("mapper");
+		if (this.state.currentView === "releases") this.handleUrlInput("releases");
+	}
+
+	private isFavorite(owner: string, repo: string): boolean {
+		return this.state.favorites.some(
+			(favorite) => favorite.owner.toLowerCase() === owner.toLowerCase() && favorite.repo.toLowerCase() === repo.toLowerCase()
+		);
+	}
+
+	private toggleFavoriteCurrent(view: "mapper" | "releases"): void {
+		const parsed = view === "mapper" ? this.state.mapper.parsedRepo : this.state.releases.parsedRepo;
+		if (!parsed) return;
+
+		if (this.isFavorite(parsed.owner, parsed.repo)) {
+			this.state.favorites = this.state.favorites.filter(
+				(favorite) => !(favorite.owner.toLowerCase() === parsed.owner.toLowerCase() && favorite.repo.toLowerCase() === parsed.repo.toLowerCase())
+			);
+		} else {
+			this.state.favorites = [{ owner: parsed.owner, repo: parsed.repo, timestamp: Date.now() }, ...this.state.favorites];
+		}
+		this.saveFavorites();
+	}
+
+	private renderFavorites(): void {
+		const grid = this.select("#favorites-grid");
+		const empty = this.select("#favorites-empty");
+		if (!grid || !empty) return;
+
+		grid.textContent = "";
+		if (this.state.favorites.length === 0) {
+			empty.classList.remove("hidden");
+			return;
+		}
+
+		empty.classList.add("hidden");
+		this.state.favorites.forEach((favorite) => grid.append(this.createFavoriteCard(favorite)));
+	}
+
+	private createFavoriteCard(favorite: FavoriteRepo): HTMLElement {
+		const card = document.createElement("article");
+		card.className = "favorite-card";
+
+		const header = document.createElement("div");
+		header.className = "favorite-card-header";
+		const titleWrap = document.createElement("div");
+		const owner = document.createElement("div");
+		owner.className = "favorite-owner";
+		owner.append(this.createIcon("folder_open"), document.createTextNode(favorite.owner));
+		const title = document.createElement("h3");
+		title.textContent = favorite.repo;
+		titleWrap.append(owner, title);
+		const remove = document.createElement("button");
+		remove.className = "icon-button";
+		remove.type = "button";
+		remove.ariaLabel = `Remove ${favorite.owner}/${favorite.repo} from favorites`;
+		const removeIcon = this.createIcon("star");
+		removeIcon.classList.add("filled-icon");
+		remove.append(removeIcon);
+		remove.addEventListener("click", () => {
+			this.state.favorites = this.state.favorites.filter(
+				(item) => !(item.owner.toLowerCase() === favorite.owner.toLowerCase() && item.repo.toLowerCase() === favorite.repo.toLowerCase())
+			);
+			this.saveFavorites();
+		});
+		header.append(titleWrap, remove);
+
+		const actions = document.createElement("div");
+		actions.className = "favorite-card-actions";
+		actions.append(
+			this.createFavoriteAction("terminal", "Map", () => this.navigateTo("mapper", this.repoUrl(favorite))),
+			this.createFavoriteAction("bar_chart", "Stats", () => this.navigateTo("releases", this.repoUrl(favorite)))
+		);
+		card.append(header, actions);
+		return card;
+	}
+
+	private createFavoriteAction(iconName: string, label: string, onClick: () => void): HTMLButtonElement {
+		const button = document.createElement("button");
+		button.type = "button";
+		button.append(this.createIcon(iconName), document.createTextNode(label));
+		button.addEventListener("click", onClick);
+		return button;
+	}
+
+	private renderHomeFavorites(): void {
+		const section = this.select("#home-favorites-section");
+		const list = this.select("#home-favorites-list");
+		if (!section || !list) return;
+
+		list.textContent = "";
+		if (this.state.favorites.length === 0) {
+			section.classList.add("hidden");
+			return;
+		}
+
+		section.classList.remove("hidden");
+		this.state.favorites.slice(0, 5).forEach((favorite) => {
+			const button = document.createElement("button");
+			button.type = "button";
+			button.className = "chip";
+			const icon = this.createIcon("star");
+			icon.classList.add("filled-icon");
+			button.append(icon, document.createTextNode(favorite.repo));
+			button.addEventListener("click", () => this.navigateTo("releases", this.repoUrl(favorite)));
+			list.append(button);
+		});
+		const seeAll = document.createElement("button");
+		seeAll.type = "button";
+		seeAll.className = "chip";
+		seeAll.append(document.createTextNode("See all"), this.createIcon("arrow_forward"));
+		seeAll.addEventListener("click", () => this.navigateTo("favorites"));
+		list.append(seeAll);
+	}
+
+	private setupDatalists(): void {
+		const options = this.state.favorites.map((favorite) => this.repoUrl(favorite));
+		["#mapper-datalist", "#releases-datalist"].forEach((selector) => {
+			const datalist = this.select<HTMLDataListElement>(selector);
+			if (!datalist) return;
+			datalist.textContent = "";
+			options.forEach((value) => {
+				const option = document.createElement("option");
+				option.value = value;
+				datalist.append(option);
+			});
+		});
+	}
+
+	private parseGithubUrl(inputUrl: string): ParsedRepo | null {
+		const match = inputUrl.trim().replace(/\/$/, "").match(/github\.com\/([^/\s]+)\/([^/\s#?]+)/i);
+		if (!match) return null;
+		return { owner: match[1], repo: match[2].replace(/\.git$/i, "") };
+	}
+
+	private parseGithubCommitUrl(inputUrl: string): { owner: string; repo: string; sha: string; patchUrl: string } | null {
+		const match = inputUrl.trim().match(/github\.com\/([^/\s]+)\/([^/\s]+)\/commit\/([a-f0-9]{7,40})(?:\.patch)?(?:[?#].*)?$/i);
+		if (!match) return null;
+		const owner = match[1];
+		const repo = match[2].replace(/\.git$/i, "");
+		const sha = match[3];
+		return { owner, repo, sha, patchUrl: `https://github.com/${owner}/${repo}/commit/${sha}.patch` };
+	}
+
+	private handleUrlInput(view: "mapper" | "releases"): void {
+		const input = this.select<HTMLInputElement>(`#${view}-url`);
+		const button = this.select<HTMLButtonElement>(`#${view}-fav-btn`);
+		if (!input || !button) return;
+		const parsed = this.parseGithubUrl(input.value);
+
+		if (view === "mapper") this.state.mapper.parsedRepo = parsed;
+		if (view === "releases") this.state.releases.parsedRepo = parsed;
+
+		button.classList.toggle("hidden", !parsed);
+		const icon = button.querySelector(".material-symbols-outlined");
+		if (!parsed || !icon) return;
+		const active = this.isFavorite(parsed.owner, parsed.repo);
+		button.classList.toggle("active", active);
+		icon.classList.toggle("filled-icon", active);
+	}
+
+	private toggleToken(view: "mapper" | "releases"): void {
+		const container = this.select(`#${view}-token-container`);
+		const label = this.select(`#${view}-token-label`);
+		if (!container || !label) return;
+		const shouldShow = container.classList.contains("hidden");
+		container.classList.toggle("hidden", !shouldShow);
+		label.textContent = shouldShow ? "Hide Settings" : "Token Settings";
+	}
+
+	private setMapperFormat(format: MapperFormat): void {
+		this.state.mapper.format = format;
+		this.select("#btn-format-ascii")?.classList.toggle("selected", format === "ascii");
+		this.select("#btn-format-paths")?.classList.toggle("selected", format === "paths");
+		if (this.state.mapper.rawPaths.length > 0) this.renderMapperOutput();
+	}
+
+	private async handleMapperSubmit(event: SubmitEvent): Promise<void> {
+		event.preventDefault();
+		const url = this.select<HTMLInputElement>("#mapper-url")?.value ?? "";
+		const token = this.select<HTMLInputElement>("#mapper-token")?.value ?? "";
+		const result = this.select("#mapper-result");
+		const parsed = this.parseGithubUrl(url);
+
+		this.hideError("mapper");
+		result?.classList.add("hidden");
+		const resetButton = this.setLoading("#mapper-submit", "Processing...", "progress_activity");
+
+		if (!parsed) {
+			this.showError("mapper", "Invalid GitHub URL");
+			resetButton();
+			return;
+		}
+
+		try {
+			const headers = this.githubHeaders(token);
+			const repoData = await this.fetchJson<GithubRepoResponse>(`https://api.github.com/repos/${parsed.owner}/${parsed.repo}`, headers, "Repo not found");
+			const treeData = await this.fetchJson<GithubTreeResponse>(
+				`https://api.github.com/repos/${parsed.owner}/${parsed.repo}/git/trees/${encodeURIComponent(repoData.default_branch)}?recursive=1`,
+				headers,
+				"Failed to fetch tree"
+			);
+			this.state.mapper.rawPaths = treeData.tree ?? [];
+			this.renderMapperOutput();
+			result?.classList.remove("hidden");
+			if (treeData.truncated) this.showError("mapper", "Repo is massive, output was truncated by the GitHub API.");
+		} catch (error) {
+			this.showError("mapper", this.errorMessage(error));
+		} finally {
+			resetButton();
+		}
+	}
+
+	private renderMapperOutput(): void {
+		const paths = this.state.mapper.rawPaths;
+		let output = "";
+		let files = 0;
+		let folders = 0;
+
+		if (this.state.mapper.format === "ascii") {
+			const structure: DirectoryNode = {};
+			paths.forEach((item) => {
+				if (item.type === "blob") files += 1;
+				if (item.type === "tree") folders += 1;
+				const parts = item.path.split("/").filter(Boolean);
+				let current = structure;
+				parts.forEach((part, index) => {
+					const isLeaf = index === parts.length - 1;
+					if (!(part in current)) current[part] = isLeaf && item.type === "blob" ? null : {};
+					const next = current[part];
+					if (next !== null) current = next;
+				});
+			});
+			output = this.buildDirectoryString(structure);
+		} else {
+			paths.forEach((path) => {
+				if (path.type === "blob") files += 1;
+				if (path.type === "tree") folders += 1;
+			});
+			output = paths.map((path) => path.path).join("\n");
+		}
+
+		this.select("#mapper-code")!.textContent = output;
+		this.select("#mapper-stats-files")!.textContent = String(files);
+		this.select("#mapper-stats-folders")!.textContent = String(folders);
+	}
+
+	private buildDirectoryString(structure: DirectoryNode, prefix = ""): string {
+		const keys = Object.keys(structure).sort((a, b) => {
+			const aIsFolder = structure[a] !== null;
+			const bIsFolder = structure[b] !== null;
+			if (aIsFolder && !bIsFolder) return -1;
+			if (!aIsFolder && bIsFolder) return 1;
+			return a.localeCompare(b);
+		});
+		return keys
+			.map((key, index) => {
+				const isLast = index === keys.length - 1;
+				const child = structure[key];
+				const line = `${prefix}${isLast ? "└── " : "├── "}${key}`;
+				return child === null ? line : `${line}\n${this.buildDirectoryString(child, prefix + (isLast ? "    " : "│   "))}`;
+			})
+			.join("\n");
+	}
+
+	private async handleReleasesSubmit(event: SubmitEvent): Promise<void> {
+		event.preventDefault();
+		const url = this.select<HTMLInputElement>("#releases-url")?.value ?? "";
+		const token = this.select<HTMLInputElement>("#releases-token")?.value ?? "";
+		const result = this.select("#releases-result");
+		const parsed = this.parseGithubUrl(url);
+
+		this.hideError("releases");
+		result?.classList.add("hidden");
+		const resetButton = this.setLoading("#releases-submit", "Processing...", "progress_activity");
+
+		if (!parsed) {
+			this.showError("releases", "Invalid GitHub URL");
+			resetButton();
+			return;
+		}
+
+		try {
+			const releases = await this.fetchJson<GithubReleaseResponse[]>(
+				`https://api.github.com/repos/${parsed.owner}/${parsed.repo}/releases?per_page=100`,
+				this.githubHeaders(token),
+				"Repo not found"
+			);
+			if (releases.length === 0) throw new Error("No releases found");
+			let total = 0;
+			const processed = releases.map((release) => {
+				const downloads = release.assets.reduce((sum, asset) => sum + asset.download_count, 0);
+				total += downloads;
+				return {
+					name: release.name || release.tag_name,
+					tagName: release.tag_name,
+					date: release.published_at,
+					downloads,
+					assets: release.assets
+						.map((asset) => ({ name: asset.name, downloads: asset.download_count }))
+						.sort((a, b) => b.downloads - a.downloads),
+				};
+			});
+
+			this.state.releases.data = { total, releases: processed };
+			this.state.releases.selectedIndex = 0;
+			this.renderReleases();
+			result?.classList.remove("hidden");
+		} catch (error) {
+			this.showError("releases", this.errorMessage(error));
+		} finally {
+			resetButton();
+		}
+	}
+
+	private renderReleases(): void {
+		if (!this.state.releases.data) return;
+		const { total, releases } = this.state.releases.data;
+		const active = releases[this.state.releases.selectedIndex];
+		const maxDownloads = Math.max(...releases.map((release) => release.downloads), 0);
+		const maxAssetDownloads = Math.max(...active.assets.map((asset) => asset.downloads), 0);
+
+		this.select("#rel-detail-name")!.textContent = active.name;
+		this.select("#rel-detail-tag")!.textContent = active.tagName;
+		this.select("#rel-detail-date")!.textContent = active.date ? new Date(active.date).toLocaleDateString() : "Unpublished";
+		this.select("#rel-detail-downloads")!.textContent = active.downloads.toLocaleString();
+		this.select("#rel-total-downloads")!.textContent = total.toLocaleString();
+		this.select("#rel-count")!.textContent = `${releases.length} Found`;
+
+		const assetList = this.select("#rel-assets-list")!;
+		assetList.textContent = "";
+		if (active.assets.length === 0) {
+			const empty = document.createElement("div");
+			empty.className = "empty-list";
+			empty.textContent = "No assets.";
+			assetList.append(empty);
+		} else {
+			active.assets.forEach((asset) => assetList.append(this.createAssetRow(asset, maxAssetDownloads)));
+		}
+
+		const releaseList = this.select("#rel-list")!;
+		releaseList.textContent = "";
+		releases.forEach((release, index) => releaseList.append(this.createReleaseButton(release, index, maxDownloads)));
+	}
+
+	private createAssetRow(asset: ReleaseAsset, maxDownloads: number): HTMLElement {
+		const row = document.createElement("div");
+		row.className = "asset-row";
+		row.innerHTML = `<div class="asset-line"><strong></strong><span></span></div><div class="bar-track"><div class="bar-fill"></div></div>`;
+		row.querySelector("strong")!.textContent = asset.name;
+		row.querySelector("span")!.textContent = asset.downloads.toLocaleString();
+		const width = maxDownloads > 0 ? (asset.downloads / maxDownloads) * 100 : 0;
+		(row.querySelector(".bar-fill") as HTMLElement).style.width = `${width}%`;
+		return row;
+	}
+
+	private createReleaseButton(release: ProcessedRelease, index: number, maxDownloads: number): HTMLButtonElement {
+		const button = document.createElement("button");
+		const selected = index === this.state.releases.selectedIndex;
+		button.type = "button";
+		button.className = `release-button${selected ? " selected" : ""}`;
+		button.innerHTML = `<div class="release-button-header"><span class="release-button-title"></span><span class="release-button-count"></span></div><div class="bar-track"><div class="bar-fill"></div></div>`;
+		button.querySelector(".release-button-title")!.textContent = release.name;
+		button.querySelector(".release-button-count")!.textContent = release.downloads.toLocaleString();
+		const width = maxDownloads > 0 ? (release.downloads / maxDownloads) * 100 : 0;
+		(button.querySelector(".bar-fill") as HTMLElement).style.width = `${width}%`;
+		button.addEventListener("click", () => {
+			this.state.releases.selectedIndex = index;
+			this.renderReleases();
+		});
+		return button;
+	}
+
+	private async handlePatchSubmit(event: SubmitEvent): Promise<void> {
+		event.preventDefault();
+		const url = this.select<HTMLInputElement>("#patch-url")?.value ?? "";
+		const result = this.select("#patch-result");
+		const parsed = this.parseGithubCommitUrl(url);
+
+		this.hideError("patch");
+		result?.classList.add("hidden");
+		const resetButton = this.setLoading("#patch-submit", "Processing...", "progress_activity");
+
+		if (!parsed) {
+			this.showError("patch", "Invalid GitHub commit URL");
+			resetButton();
+			return;
+		}
+
+		try {
+			const response = await fetch(parsed.patchUrl, { headers: { Accept: "text/plain" } });
+			if (!response.ok) throw new Error(response.status === 404 ? "Commit not found" : "Failed to fetch patch");
+			this.state.patch.content = await response.text();
+			this.state.patch.fileName = `${parsed.owner}-${parsed.repo}-${parsed.sha.slice(0, 12)}.patch`;
+			this.select("#patch-code")!.textContent = this.state.patch.content;
+			result?.classList.remove("hidden");
+		} catch (error) {
+			this.showError("patch", this.errorMessage(error));
+		} finally {
+			resetButton();
+		}
+	}
+
+	private async copyMapperOutput(): Promise<void> {
+		await this.copyText(this.select("#mapper-code")?.textContent ?? "", "#mapper-copy-btn", "Copy Code");
+	}
+
+	private async copyPatchOutput(): Promise<void> {
+		await this.copyText(this.state.patch.content, "#patch-copy-btn", "Copy");
+	}
+
+	private async copyText(text: string, buttonSelector: string, resetLabel: string): Promise<void> {
+		if (!text) return;
+		await navigator.clipboard.writeText(text);
+		const button = this.select<HTMLButtonElement>(buttonSelector);
+		if (!button) return;
+		button.innerHTML = `<span class="material-symbols-outlined">check_circle</span><span>Copied</span>`;
+		window.setTimeout(() => {
+			button.innerHTML = `<span class="material-symbols-outlined">content_copy</span><span>${resetLabel}</span>`;
+		}, 2000);
+	}
+
+	private downloadPatch(): void {
+		if (!this.state.patch.content) return;
+		const blob = new Blob([this.state.patch.content], { type: "text/x-patch;charset=utf-8" });
+		const url = URL.createObjectURL(blob);
+		const link = document.createElement("a");
+		link.href = url;
+		link.download = this.state.patch.fileName;
+		link.click();
+		URL.revokeObjectURL(url);
+	}
+
+	private async fetchJson<T>(url: string, headers: Record<string, string>, notFoundMessage: string): Promise<T> {
+		const response = await fetch(url, { headers });
+		if (!response.ok) throw new Error(response.status === 404 ? notFoundMessage : `GitHub API error (${response.status})`);
+		return (await response.json()) as T;
+	}
+
+	private githubHeaders(token: string): Record<string, string> {
+		const headers: Record<string, string> = { Accept: "application/vnd.github.v3+json" };
+		if (token.trim()) headers.Authorization = `token ${token.trim()}`;
+		return headers;
+	}
+
+	private showError(scope: "mapper" | "releases" | "patch", message: string): void {
+		this.select(`#${scope}-error-text`)!.textContent = message;
+		this.select(`#${scope}-error`)!.classList.remove("hidden");
+	}
+
+	private hideError(scope: "mapper" | "releases" | "patch"): void {
+		this.select(`#${scope}-error`)?.classList.add("hidden");
+	}
+
+	private setLoading(buttonSelector: string, label: string, iconName: string): () => void {
+		const button = this.select<HTMLButtonElement>(buttonSelector)!;
+		const icon = button.querySelector(".material-symbols-outlined")!;
+		const text = button.querySelector("span:last-child")!;
+		const originalIcon = icon.textContent ?? "";
+		const originalText = text.textContent ?? "";
+		button.disabled = true;
+		icon.textContent = iconName;
+		icon.classList.add("spin");
+		text.textContent = label;
+		return () => {
+			button.disabled = false;
+			icon.textContent = originalIcon;
+			icon.classList.remove("spin");
+			text.textContent = originalText;
+		};
+	}
+
+	private createIcon(name: string): HTMLSpanElement {
+		const icon = document.createElement("span");
+		icon.className = "material-symbols-outlined";
+		icon.textContent = name;
+		return icon;
+	}
+
+	private repoUrl(repo: ParsedRepo): string {
+		return `https://github.com/${repo.owner}/${repo.repo}`;
+	}
+
+	private errorMessage(error: unknown): string {
+		return error instanceof Error ? error.message : "Something went wrong";
+	}
+}
