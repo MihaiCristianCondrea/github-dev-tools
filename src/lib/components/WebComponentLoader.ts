@@ -46,7 +46,7 @@ class ComponentDefinition<T extends WebComponent> {
 	constructor(public name: string, public componentConstructor: new () => T) {}
 
 	public defineSelf(): void {
-		customElements.define(this.name, this.componentConstructor);
+		if (!customElements.get(this.name)) customElements.define(this.name, this.componentConstructor);
 	}
 }
 
