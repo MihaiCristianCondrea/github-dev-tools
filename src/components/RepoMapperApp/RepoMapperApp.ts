@@ -1,5 +1,5 @@
 import WebComponent from "../../lib/components/WebComponent";
-import css from "./RepoMapperApp.css";
+import css from "./RepoMapperApp.css?raw";
 import html from "./RepoMapperApp.html";
 
 type ViewId = "home" | "favorites" | "mapper" | "releases" | "gitpatch";

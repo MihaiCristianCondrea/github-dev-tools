@@ -6,7 +6,7 @@ import WebComponent from "../../lib/components/WebComponent";
 // ====================================================== //
 
 // import the html and css files of the component
-import css from "./ExampleComponent.css";
+import css from "./ExampleComponent.css?raw";
 import html from "./ExampleComponent.html";
 import State from "../../lib/state/State";
 
