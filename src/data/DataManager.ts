@@ -1,15 +1,12 @@
-import ExampleModel from "./models/ExampleModel";
+import FavoriteRepositoryStore from "./FavoriteRepositoryStore";
+import GitHubRepositoryClient from "./GitHubRepositoryClient";
 
 export default class DataManager {
-	static async init() {
-		// Do init stuff here, e.g. db connection
-	}
+	static github = new GitHubRepositoryClient();
+	static favorites = new FavoriteRepositoryStore();
 
-	// Write methods to fetch or save data to Database etc here
-
-	// Returns the example model
-	static async getExampleModel(): Promise<ExampleModel> {
-		// would query database here or other networking stuff
-		return new ExampleModel("John", 0);
+	static async init(): Promise<void> {
+		// Data services are stateless today, but this lifecycle hook keeps the app
+		// ready for future persistence, cache, or API-client initialization.
 	}
 }
