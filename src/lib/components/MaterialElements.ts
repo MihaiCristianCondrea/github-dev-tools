@@ -1,13 +1,22 @@
+const MATERIAL_WEB_COMPONENT_IMPORTS = [
+	"https://cdn.jsdelivr.net/npm/@material/web@2.3.0/icon/icon.js/+esm",
+	"https://cdn.jsdelivr.net/npm/@material/web@2.3.0/iconbutton/icon-button.js/+esm",
+	"https://cdn.jsdelivr.net/npm/@material/web@2.3.0/button/filled-button.js/+esm",
+	"https://cdn.jsdelivr.net/npm/@material/web@2.3.0/button/outlined-button.js/+esm",
+	"https://cdn.jsdelivr.net/npm/@material/web@2.3.0/button/text-button.js/+esm",
+	"https://cdn.jsdelivr.net/npm/@material/web@2.3.0/textfield/filled-text-field.js/+esm",
+];
+
 const MATERIAL_ICON_CLASS = "material-symbols-outlined";
 
-class MdIcon extends HTMLElement {
+class MdIconFallback extends HTMLElement {
 	connectedCallback(): void {
 		this.classList.add(MATERIAL_ICON_CLASS);
 		this.setAttribute("aria-hidden", this.getAttribute("aria-hidden") ?? "true");
 	}
 }
 
-class MdButton extends HTMLElement {
+class MdButtonFallback extends HTMLElement {
 	static get observedAttributes(): string[] {
 		return ["disabled", "type"];
 	}
@@ -69,7 +78,7 @@ class MdButton extends HTMLElement {
 	}
 }
 
-class MdFilledTextField extends HTMLElement {
+class MdFilledTextFieldFallback extends HTMLElement {
 	private readonly input = document.createElement("input");
 	private readonly labelElement = document.createElement("label");
 	private readonly shadow = this.attachShadow({ mode: "open" });
@@ -148,11 +157,26 @@ const defineElement = (name: string, constructor: CustomElementConstructor): voi
 	if (!customElements.get(name)) customElements.define(name, constructor);
 };
 
-export const defineMaterialElements = (): void => {
-	defineElement("md-icon", MdIcon);
-	defineElement("md-icon-button", MdButton);
-	defineElement("md-filled-button", MdButton);
-	defineElement("md-outlined-button", MdButton);
-	defineElement("md-text-button", MdButton);
-	defineElement("md-filled-text-field", MdFilledTextField);
+const defineFallbackMaterialElements = (): void => {
+	defineElement("md-icon", MdIconFallback);
+	defineElement("md-icon-button", MdButtonFallback);
+	defineElement("md-filled-button", MdButtonFallback);
+	defineElement("md-outlined-button", MdButtonFallback);
+	defineElement("md-text-button", MdButtonFallback);
+	defineElement("md-filled-text-field", MdFilledTextFieldFallback);
+};
+
+const loadMaterialWebComponents = async (): Promise<void> => {
+	await Promise.all(
+		MATERIAL_WEB_COMPONENT_IMPORTS.map((componentImport) => import(/* @vite-ignore */ componentImport))
+	);
+};
+
+export const defineMaterialElements = async (): Promise<void> => {
+	try {
+		await loadMaterialWebComponents();
+	} catch (error) {
+		console.warn("Material Web components could not be loaded; using local fallbacks instead.", error);
+		defineFallbackMaterialElements();
+	}
 };
