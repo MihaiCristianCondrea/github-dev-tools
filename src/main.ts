@@ -3,19 +3,39 @@ import DataManager from "./data/DataManager";
 import WebComponentLoader from "./lib/components/WebComponentLoader";
 import GlobalState from "./lib/state/GlobalState";
 
-const app = () => {
+const app = async () => {
 	"use strict";
 
-	defineMaterialElements();
+	renderLoadingState();
+	await defineMaterialElements();
 
-	WebComponentLoader.loadAll()
-		.then(() => DataManager.init())
-		.then(() => GlobalState.init())
-		.then(() => onApplicationStart());
+	try {
+		await WebComponentLoader.loadAll();
+		await DataManager.init();
+		await GlobalState.init();
+		onApplicationStart();
+	} catch (error) {
+		console.error("Failed to start RepoMapper", error);
+		renderStartupError();
+	}
 
 	function onApplicationStart() {
-		document.querySelector<HTMLDivElement>("#app")!.append(document.createElement("repo-mapper-app"));
+		const appRoot = document.querySelector<HTMLDivElement>("#app")!;
+		appRoot.textContent = "";
+		appRoot.append(document.createElement("repo-mapper-app"));
+	}
+
+	function renderLoadingState() {
+		const appRoot = document.querySelector<HTMLDivElement>("#app");
+		if (!appRoot) return;
+		appRoot.innerHTML = `<main style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:system-ui,sans-serif;color:#111;background:#fff;"><p>Loading RepoMapper…</p></main>`;
+	}
+
+	function renderStartupError() {
+		const appRoot = document.querySelector<HTMLDivElement>("#app");
+		if (!appRoot) return;
+		appRoot.innerHTML = `<main style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:system-ui,sans-serif;color:#111;background:#fff;"><section style="max-width:560px;border:1px solid #ddd;border-radius:16px;padding:24px;"><h1 style="margin-top:0;">RepoMapper could not start</h1><p>Please refresh the page. If the problem continues, check the browser console for details.</p></section></main>`;
 	}
 };
 
-app();
+void app();
