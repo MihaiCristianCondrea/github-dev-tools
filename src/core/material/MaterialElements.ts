@@ -9,6 +9,8 @@ import "@material/web/button/outlined-button.js";
 import "@material/web/button/text-button.js";
 import "@material/web/textfield/outlined-text-field.js";
 import "@material/web/progress/circular-progress.js";
+import "@material/web/chips/assist-chip.js";
+import "@material/web/chips/chip-set.js";
 import "@material/web/labs/card/outlined-card.js";
 import "@material/web/labs/item/item.js";
 import "@material/web/labs/navigationdrawer/navigation-drawer-modal.js";

@@ -81,8 +81,17 @@
 				</div>
 				<div id="mapper-error" class="error-box hidden"><md-icon>error</md-icon><span id="mapper-error-text"></span></div>
 				<div id="mapper-result" class="result-stack hidden">
-					<div class="result-toolbar"><div class="stat-row"><span><b id="mapper-stats-folders">0</b> Folders</span><span><b id="mapper-stats-files">0</b> Files</span></div><md-outlined-button type="button" id="mapper-copy-btn" class="secondary-button"><md-icon slot="icon" data-icon>content_copy</md-icon><span data-label>Copy Code</span></md-outlined-button></div>
-					<div class="code-panel"><div class="code-title"><md-icon>description</md-icon><span>OUTPUT</span></div><pre><code id="mapper-code"></code></pre></div>
+					<div class="code-panel">
+						<div class="code-title output-title">
+							<span class="code-title-label"><md-icon>description</md-icon><span>OUTPUT</span></span>
+							<md-chip-set class="output-chip-set" aria-label="Output actions and statistics">
+								<md-assist-chip class="output-chip" disabled aria-label="Folder count"><md-icon slot="icon">folder</md-icon><span><b id="mapper-stats-folders">0</b> Folders</span></md-assist-chip>
+								<md-assist-chip class="output-chip" disabled aria-label="File count"><md-icon slot="icon">draft</md-icon><span><b id="mapper-stats-files">0</b> Files</span></md-assist-chip>
+								<md-assist-chip type="button" id="mapper-copy-btn" class="output-chip action-chip"><md-icon slot="icon" data-icon>content_copy</md-icon><span data-label>Copy Code</span></md-assist-chip>
+							</md-chip-set>
+						</div>
+						<pre><code id="mapper-code"></code></pre>
+					</div>
 				</div>
 			</section>
 
