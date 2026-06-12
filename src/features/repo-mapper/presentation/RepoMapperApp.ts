@@ -14,6 +14,7 @@ import html from "./RepoMapperApp.html?raw";
 
 type ViewId = "home" | "favorites" | "mapper" | "releases" | "gitpatch";
 type NavigationDrawerElement = HTMLElement & { opened: boolean };
+type SegmentedButtonSetElement = HTMLElement & { setButtonSelected(index: number, selected: boolean): void };
 
 const VIEW_TITLES: Record<ViewId, string> = {
 	home: "Home",
@@ -141,8 +142,11 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private bindRepositoryMapFormatControls(): void {
-		this.selectAll<HTMLElement>("[data-format]").forEach((button) => {
-			button.addEventListener("click", () => this.setRepositoryMapFormat(button.dataset.format as RepositoryMapFormat));
+		this.select(".segmented")?.addEventListener("segmented-button-set-selection", (event) => {
+			const { button, selected } = (event as CustomEvent<{ button: HTMLElement; selected: boolean }>).detail;
+			const format = button.dataset.format;
+			if (!selected || (format !== "ascii" && format !== "paths")) return;
+			this.setRepositoryMapFormat(format, false);
 		});
 		this.select("#mapper-copy-btn")?.addEventListener("click", () => this.copyMapperOutput());
 	}
@@ -341,19 +345,22 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private toggleToken(view: "mapper" | "releases"): void {
+		const button = this.select(`[data-token-toggle="${view}"]`);
 		const panel = this.select(`#${view}-token-panel`);
 		const label = this.select(`#${view}-token-label`);
-		if (!panel || !label) return;
+		if (!button || !panel || !label) return;
 		const shouldShow = !panel.classList.contains("open");
 		panel.classList.toggle("open", shouldShow);
 		panel.setAttribute("aria-hidden", String(!shouldShow));
+		button.setAttribute("aria-expanded", String(shouldShow));
 		label.textContent = shouldShow ? "Hide Settings" : "Token Settings";
 	}
 
-	private setRepositoryMapFormat(format: RepositoryMapFormat): void {
+	private setRepositoryMapFormat(format: RepositoryMapFormat, syncControl = true): void {
 		this.state.mapper.format = format;
-		this.select("#btn-format-ascii")?.toggleAttribute("selected", format === "ascii");
-		this.select("#btn-format-paths")?.toggleAttribute("selected", format === "paths");
+		if (syncControl) {
+			this.select<SegmentedButtonSetElement>(".segmented")?.setButtonSelected(format === "ascii" ? 0 : 1, true);
+		}
 		if (this.state.mapper.rawPaths.length > 0) this.renderMapperOutput();
 	}
 

@@ -51,12 +51,12 @@
 						<span class="tool-watermark material-symbols-outlined">integration_instructions</span>
 					</md-outlined-card>
 				</div>
-				<app-showcase-section id="app-showcase"></app-showcase-section>
-
 				<div id="home-favorites-section" class="home-favorites hidden">
 					<h3>Quick Access Favorites</h3>
 					<div id="home-favorites-list" class="favorite-chips"></div>
 				</div>
+
+				<app-showcase-section id="app-showcase"></app-showcase-section>
 			</section>
 
 			<section id="view-mapper" class="view-section" aria-label="Repo Mapper">
@@ -67,10 +67,10 @@
 							<md-outlined-icon-button type="button" id="mapper-fav-btn" class="favorite-button" disabled aria-label="Add favorite"><md-icon>star_border</md-icon></md-outlined-icon-button>
 						</div>
 						<div class="settings-row">
-							<md-text-button type="button" class="text-button" data-token-toggle="mapper"><md-icon slot="icon">settings</md-icon><span id="mapper-token-label">Token Settings</span></md-text-button>
+							<md-text-button type="button" class="text-button token-settings-button" data-token-toggle="mapper" aria-expanded="false" aria-controls="mapper-token-panel"><md-icon slot="icon" class="token-settings-icon">settings</md-icon><span id="mapper-token-label" class="token-settings-label">Token Settings</span></md-text-button>
 							<md-outlined-segmented-button-set class="segmented" aria-label="Mapper output format">
-								<md-outlined-segmented-button id="btn-format-ascii" data-format="ascii" selected no-checkmark label="ASCII"><md-icon slot="icon">account_tree</md-icon></md-outlined-segmented-button>
-								<md-outlined-segmented-button id="btn-format-paths" data-format="paths" no-checkmark label="Paths"><md-icon slot="icon">route</md-icon></md-outlined-segmented-button>
+								<md-outlined-segmented-button id="btn-format-ascii" data-format="ascii" selected label="ASCII"><md-icon slot="icon">account_tree</md-icon></md-outlined-segmented-button>
+								<md-outlined-segmented-button id="btn-format-paths" data-format="paths" label="Paths"><md-icon slot="icon">route</md-icon></md-outlined-segmented-button>
 							</md-outlined-segmented-button-set>
 						</div>
 						<div id="mapper-token-panel" class="token-field" aria-hidden="true"><div class="token-field-content"><md-outlined-text-field id="mapper-token" type="password" label="Access Token (Optional)" placeholder="github_pat_..." autocomplete="off"></md-outlined-text-field></div></div>
@@ -98,7 +98,7 @@
 			<section id="view-releases" class="view-section" aria-label="Release Stats">
 				<div class="panel"><form id="releases-form" class="form-stack">
 					<div class="field-with-action"><md-outlined-text-field type="url" id="releases-url" list="releases-datalist" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field><md-outlined-icon-button type="button" id="releases-fav-btn" class="favorite-button" disabled aria-label="Add favorite"><md-icon>star_border</md-icon></md-outlined-icon-button></div>
-					<div class="settings-row"><md-text-button type="button" class="text-button" data-token-toggle="releases"><md-icon slot="icon">settings</md-icon><span id="releases-token-label">Token Settings</span></md-text-button></div>
+					<div class="settings-row"><md-text-button type="button" class="text-button token-settings-button" data-token-toggle="releases" aria-expanded="false" aria-controls="releases-token-panel"><md-icon slot="icon" class="token-settings-icon">settings</md-icon><span id="releases-token-label" class="token-settings-label">Token Settings</span></md-text-button></div>
 					<div id="releases-token-panel" class="token-field" aria-hidden="true"><div class="token-field-content"><md-outlined-text-field id="releases-token" type="password" label="Access Token (Optional)" placeholder="github_pat_..." autocomplete="off"></md-outlined-text-field></div></div>
 					<div class="form-actions"><md-filled-button type="submit" id="releases-submit" class="primary-button"><md-icon slot="icon" data-icon>analytics</md-icon><span data-label>Analyze</span></md-filled-button></div>
 				</form></div>
