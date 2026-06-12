@@ -8,7 +8,7 @@ import GitHubUrlParser from "../../domain/services/GitHubUrlParser";
 import RepositoryMapBuilder from "../../domain/services/RepositoryMapBuilder";
 import WebComponent from "../../lib/components/WebComponent";
 import css from "./RepoMapperApp.css?raw";
-import html from "./RepoMapperApp.html";
+import html from "./RepoMapperApp.html?raw";
 
 type ViewId = "home" | "favorites" | "mapper" | "releases" | "gitpatch";
 
@@ -65,7 +65,6 @@ export default class RepoMapperApp extends WebComponent {
 		this.bindPatchActions();
 		this.renderFavorites();
 		this.renderHomeFavorites();
-		this.setupDatalists();
 		this.navigateTo("home", undefined, false);
 	}
 
@@ -155,7 +154,6 @@ export default class RepoMapperApp extends WebComponent {
 		DataManager.favorites.save(this.state.favorites);
 		this.renderFavorites();
 		this.renderHomeFavorites();
-		this.setupDatalists();
 		if (this.state.currentView === "mapper") this.handleUrlInput("mapper");
 		if (this.state.currentView === "releases") this.handleUrlInput("releases");
 	}
@@ -263,35 +261,25 @@ export default class RepoMapperApp extends WebComponent {
 		list.append(seeAll);
 	}
 
-	private setupDatalists(): void {
-		const options = this.state.favorites.map((favorite) => repositoryUrl(favorite));
-		["#mapper-datalist", "#releases-datalist"].forEach((selector) => {
-			const datalist = this.select<HTMLDataListElement>(selector);
-			if (!datalist) return;
-			datalist.textContent = "";
-			options.forEach((value) => {
-				const option = document.createElement("option");
-				option.value = value;
-				datalist.append(option);
-			});
-		});
-	}
-
 	private handleUrlInput(view: "mapper" | "releases"): void {
 		const input = this.select<HTMLInputElement>(`#${view}-url`);
-		const button = this.select<HTMLButtonElement>(`#${view}-fav-btn`);
-		if (!input || !button) return;
+		if (!input) return;
 		const parsed = GitHubUrlParser.parseRepositoryUrl(input.value);
 
 		if (view === "mapper") this.state.mapper.parsedRepo = parsed;
 		if (view === "releases") this.state.releases.parsedRepo = parsed;
 
+		this.updateFavoriteButton(view, parsed);
+	}
+
+	private updateFavoriteButton(view: "mapper" | "releases", parsed: RepositoryRef | null): void {
+		const button = this.select<HTMLElement>(`#${view}-fav-btn`);
+		if (!button) return;
+
+		const active = !!parsed && this.isFavorite(parsed);
 		button.classList.toggle("hidden", !parsed);
-		const icon = button.querySelector("md-icon, .material-symbols-outlined");
-		if (!parsed || !icon) return;
-		const active = this.isFavorite(parsed);
-		button.classList.toggle("active", active);
-		icon.classList.toggle("filled-icon", active);
+		button.toggleAttribute("selected", active);
+		button.setAttribute("aria-label", active ? "Remove favorite" : "Add favorite");
 	}
 
 	private toggleToken(view: "mapper" | "releases"): void {
@@ -472,13 +460,8 @@ export default class RepoMapperApp extends WebComponent {
 	private async copyTextWithFeedback(text: string, buttonSelector: string): Promise<void> {
 		if (!text) return;
 		await navigator.clipboard.writeText(text);
-		const button = this.select<HTMLButtonElement>(buttonSelector);
-		if (!button) return;
-		const originalHtml = button.innerHTML;
-		button.innerHTML = `<md-icon slot="icon" class="copied">check_circle</md-icon><span class="copied">Copied</span>`;
-		window.setTimeout(() => {
-			button.innerHTML = originalHtml;
-		}, 2000);
+		const resetButton = this.setButtonState(buttonSelector, "Copied", "check_circle", false, "copied");
+		window.setTimeout(resetButton, 2000);
 	}
 
 	private downloadPatch(): void {
@@ -504,19 +487,27 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private setLoading(buttonSelector: string, label: string, iconName: string): () => void {
-		const button = this.select<HTMLButtonElement>(buttonSelector)!;
-		const icon = button.querySelector("md-icon, .material-symbols-outlined")!;
-		const text = button.querySelector("span:last-child")!;
+		return this.setButtonState(buttonSelector, label, iconName, true, "spin");
+	}
+
+	private setButtonState(buttonSelector: string, label: string, iconName: string, disabled: boolean, iconClass: string): () => void {
+		const button = this.select<HTMLElement>(buttonSelector);
+		const icon = button?.querySelector<HTMLElement>("[data-icon]");
+		const text = button?.querySelector<HTMLElement>("[data-label]");
+		if (!button || !icon || !text) return () => {};
+
 		const originalIcon = icon.textContent ?? "";
 		const originalText = text.textContent ?? "";
-		button.disabled = true;
+		const wasDisabled = button.hasAttribute("disabled");
+
+		button.toggleAttribute("disabled", disabled);
 		icon.textContent = iconName;
-		icon.classList.add("spin");
+		icon.classList.add(iconClass);
 		text.textContent = label;
 		return () => {
-			button.disabled = false;
+			button.toggleAttribute("disabled", wasDisabled);
 			icon.textContent = originalIcon;
-			icon.classList.remove("spin");
+			icon.classList.remove(iconClass);
 			text.textContent = originalText;
 		};
 	}

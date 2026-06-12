@@ -1,16 +1,19 @@
-import { defineMaterialElements } from "./lib/components/MaterialElements";
 import DataManager from "./data/DataManager";
-import WebComponentLoader from "./lib/components/WebComponentLoader";
+import RepoMapperApp from "./components/RepoMapperApp/RepoMapperApp";
+import { defineMaterialElements } from "./lib/components/MaterialElements";
 import GlobalState from "./lib/state/GlobalState";
+
+if (!customElements.get("repo-mapper-app")) {
+	customElements.define("repo-mapper-app", RepoMapperApp);
+}
 
 const app = async () => {
 	"use strict";
 
 	renderLoadingState();
-	await defineMaterialElements();
+	void defineMaterialElements();
 
 	try {
-		await WebComponentLoader.loadAll();
 		await DataManager.init();
 		await GlobalState.init();
 		onApplicationStart();
@@ -20,7 +23,8 @@ const app = async () => {
 	}
 
 	function onApplicationStart() {
-		const appRoot = document.querySelector<HTMLDivElement>("#app")!;
+		const appRoot = document.querySelector<HTMLDivElement>("#app");
+		if (!appRoot) throw new Error("#app root not found");
 		appRoot.textContent = "";
 		appRoot.append(document.createElement("repo-mapper-app"));
 	}

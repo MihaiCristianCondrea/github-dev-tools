@@ -13,10 +13,10 @@ export default class WebComponentLoader {
 	private static componentDefinitions: ComponentDefinition<WebComponent>[] = [];
 
 	public static async loadAll(): Promise<void> {
-		const modules: GlobImport = import.meta.importGlob("../../components/**/*.ts");
+		const modules = (import.meta as ImportMetaWithGlob).glob("../../components/**/*.ts");
 		const modulePaths = Object.keys(modules);
 		for (const modulePath of modulePaths) {
-			const module = await modules[modulePath]();
+			const module = await modules[modulePath]() as ComponentModule;
 			const componentClass = module.default;
 			if (componentClass && componentClass.prototype.htmlTagName) {
 				const componentDefinition = new ComponentDefinition(
@@ -50,7 +50,10 @@ class ComponentDefinition<T extends WebComponent> {
 	}
 }
 
-// Helper type for the return value of the import.meta.importGlob() function
-type GlobImport = {
-	[key: string]: () => Promise<any>;
+type WebComponentConstructor = { new (): WebComponent; prototype: WebComponent };
+
+type ComponentModule = { default?: WebComponentConstructor };
+
+type ImportMetaWithGlob = ImportMeta & {
+	glob: (pattern: string) => Record<string, () => Promise<ComponentModule>>;
 };
