@@ -1,7 +1,7 @@
-import DataManager from "./data/DataManager";
-import RepoMapperApp from "./components/RepoMapperApp/RepoMapperApp";
-import { defineMaterialElements } from "./lib/components/MaterialElements";
-import GlobalState from "./lib/state/GlobalState";
+import DataServices from "./data/DataServices";
+import RepoMapperApp from "./presentation/components/RepoMapperApp/RepoMapperApp";
+import { defineMaterialElements } from "./presentation/material/MaterialElements";
+import GlobalState from "./core/state/GlobalState";
 
 if (!customElements.get("repo-mapper-app")) {
 	customElements.define("repo-mapper-app", RepoMapperApp);
@@ -15,7 +15,7 @@ const app = async () => {
 
 	try {
 		await defineMaterialElements();
-		await DataManager.init();
+		await DataServices.init();
 		await GlobalState.init();
 		onApplicationStart();
 	} catch (error) {

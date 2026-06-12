@@ -1,5 +1,5 @@
-import type { AppItem } from "../../domain/models/AppItem";
-import type { GetPromotedAppsUseCase } from "../../domain/usecases/GetPromotedAppsUseCase";
+import type { AppItem } from "../../../domain/models/AppItem";
+import type { GetPromotedAppsUseCase } from "../../../domain/usecases/GetPromotedAppsUseCase";
 import type { AppCard } from "./AppCard";
 import "./AppCard";
 

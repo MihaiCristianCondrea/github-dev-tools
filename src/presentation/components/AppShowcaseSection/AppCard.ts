@@ -1,4 +1,4 @@
-import type { AppItem } from "../../domain/models/AppItem";
+import type { AppItem } from "../../../domain/models/AppItem";
 
 export class AppCard extends HTMLElement {
 	set app(value: AppItem) {

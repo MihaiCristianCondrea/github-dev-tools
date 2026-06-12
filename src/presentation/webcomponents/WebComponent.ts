@@ -5,7 +5,7 @@
 // This class is used to create your custom web components.
 
 // Usage:
-// -> Extend this class from a component under src/components and provide HTML/CSS strings.
+// -> Extend this class from a component under src/presentation/components and provide HTML/CSS strings.
 
 export default abstract class WebComponent extends HTMLElement {
 	html: string;
