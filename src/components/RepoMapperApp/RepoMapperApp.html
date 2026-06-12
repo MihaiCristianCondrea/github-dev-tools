@@ -62,7 +62,7 @@
 				<div class="panel">
 					<form id="mapper-form" class="form-stack">
 						<div class="field-with-action">
-							<md-outlined-text-field type="url" id="mapper-url" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field>
+							<md-outlined-text-field type="url" id="mapper-url" list="mapper-datalist" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field>
 							<md-outlined-icon-button type="button" id="mapper-fav-btn" class="favorite-button" toggle disabled aria-label="Add favorite"><md-icon>star_border</md-icon><md-icon slot="selected">star</md-icon></md-outlined-icon-button>
 						</div>
 						<div class="settings-row">
@@ -87,7 +87,7 @@
 
 			<section id="view-releases" class="view-section" aria-label="Release Stats">
 				<div class="panel"><form id="releases-form" class="form-stack">
-					<div class="field-with-action"><md-outlined-text-field type="url" id="releases-url" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field><md-outlined-icon-button type="button" id="releases-fav-btn" class="favorite-button" toggle disabled aria-label="Add favorite"><md-icon>star_border</md-icon><md-icon slot="selected">star</md-icon></md-outlined-icon-button></div>
+					<div class="field-with-action"><md-outlined-text-field type="url" id="releases-url" list="releases-datalist" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field><md-outlined-icon-button type="button" id="releases-fav-btn" class="favorite-button" toggle disabled aria-label="Add favorite"><md-icon>star_border</md-icon><md-icon slot="selected">star</md-icon></md-outlined-icon-button></div>
 					<div class="settings-row"><md-text-button type="button" class="text-button" data-token-toggle="releases"><md-icon slot="icon">settings</md-icon><span id="releases-token-label">Token Settings</span></md-text-button></div>
 					<div id="releases-token-panel" class="token-field" aria-hidden="true"><md-outlined-text-field id="releases-token" type="password" label="Access Token (Optional)" placeholder="github_pat_..." autocomplete="off"></md-outlined-text-field></div>
 					<div class="form-actions"><md-filled-button type="submit" id="releases-submit" class="primary-button"><md-icon slot="icon" data-icon>analytics</md-icon><span data-label>Analyze</span></md-filled-button></div>

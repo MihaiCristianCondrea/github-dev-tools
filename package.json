@@ -11,5 +11,8 @@
 	"devDependencies": {
 		"typescript": "^4.6.4",
 		"vite": "^6.4.2"
+	},
+	"dependencies": {
+		"@material/web": "^2.3.0"
 	}
 }

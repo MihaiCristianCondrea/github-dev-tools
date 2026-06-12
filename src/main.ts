@@ -7,6 +7,7 @@ if (!customElements.get("repo-mapper-app")) {
 	customElements.define("repo-mapper-app", RepoMapperApp);
 }
 
+// Material is bundled at build time; startup failures here should come from app state/data initialization, not runtime UI-library fetches.
 const app = async () => {
 	"use strict";
 
