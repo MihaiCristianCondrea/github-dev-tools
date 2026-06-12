@@ -161,6 +161,10 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private syncDrawerState(isOpen: boolean): void {
+		const drawerLayer = this.select("#drawer-layer");
+		drawerLayer?.classList.toggle("open", isOpen);
+		drawerLayer?.setAttribute("aria-hidden", String(!isOpen));
+
 		this.select("#drawer-open")?.setAttribute("aria-expanded", String(isOpen));
 		this.select("#drawer-open")?.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
 		const triggerIcon = this.select("#drawer-open-icon");

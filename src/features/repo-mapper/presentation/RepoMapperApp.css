@@ -82,7 +82,9 @@ button:disabled { cursor: not-allowed; opacity: .72; }
 .material-symbols-outlined.filled-icon, md-icon.filled-icon { font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24; }
 
 .app-shell { min-height: 100vh; overflow: hidden; background: var(--bg-color); color: var(--text-color); }
-.drawer { position: fixed; inset: 0; z-index: 1000; --md-navigation-drawer-modal-container-color: var(--surface-color); --md-navigation-drawer-modal-scrim-color: var(--text-color); --md-navigation-drawer-modal-scrim-opacity: .24; --md-sys-color-surface-container-low: var(--surface-color); --md-sys-color-surface-container: var(--surface-color); --md-sys-color-on-surface: var(--text-color); --md-sys-color-outline: var(--outline); }
+.drawer-layer { position: fixed; inset: 0; z-index: 1000; pointer-events: none; }
+.drawer-layer.open { pointer-events: auto; }
+.drawer { position: absolute; inset: 0; --md-navigation-drawer-modal-container-color: var(--surface-color); --md-navigation-drawer-modal-scrim-color: var(--text-color); --md-navigation-drawer-modal-scrim-opacity: .24; --md-sys-color-surface-container-low: var(--surface-color); --md-sys-color-surface-container: var(--surface-color); --md-sys-color-on-surface: var(--text-color); --md-sys-color-outline: var(--outline); }
 .drawer-header, .topbar { height: 64px; display: flex; align-items: center; }
 .drawer-header { justify-content: space-between; padding: 0 16px; }
 .drawer-header h2, .topbar h1 { margin: 0; font-weight: 500; }
