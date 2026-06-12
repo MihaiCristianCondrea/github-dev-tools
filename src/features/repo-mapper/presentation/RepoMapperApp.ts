@@ -243,13 +243,14 @@ export default class RepoMapperApp extends WebComponent {
 		const header = document.createElement("div");
 		header.className = "favorite-card-header";
 		const titleWrap = document.createElement("div");
+		titleWrap.className = "favorite-title-wrap";
 		const owner = document.createElement("div");
 		owner.className = "favorite-owner";
 		owner.append(this.createIcon("folder_open"), document.createTextNode(favorite.owner));
 		const title = document.createElement("h3");
 		title.textContent = favorite.repo;
 		titleWrap.append(owner, title);
-		const remove = document.createElement("md-icon-button");
+		const remove = document.createElement("md-outlined-icon-button");
 		remove.setAttribute("type", "button");
 		remove.setAttribute("aria-label", `Remove ${favorite.owner}/${favorite.repo} from favorites`);
 		const removeIcon = this.createIcon("star");

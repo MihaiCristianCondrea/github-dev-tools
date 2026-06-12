@@ -58,7 +58,7 @@
 * { box-sizing: border-box; }
 b, strong { font-weight: 600; }
 button, input { font: inherit; }
-button, md-item[role="button"], md-outlined-card[role="button"] { cursor: pointer; }
+button { cursor: pointer; }
 button:disabled { cursor: not-allowed; opacity: .72; }
 
 .material-symbols-outlined {
@@ -202,9 +202,10 @@ pre { max-height: 60vh; margin: 0; padding: 24px; overflow: auto; color: var(--t
 .favorites-grid { display: grid; grid-template-columns: repeat(3, minmax(0, 1fr)); gap: 16px; }
 .favorite-card { display: flex; flex-direction: column; min-height: 190px; padding: 20px; border-radius: 18px; background: var(--surface-color); transition: background .2s ease; --md-outlined-card-container-color: var(--surface-color); --md-outlined-card-outline-color: var(--border-color); }
 .favorite-card:hover { background: var(--surface-variant); box-shadow: none; --md-outlined-card-container-color: var(--surface-variant); }
-.favorite-card-header { display: flex; justify-content: space-between; gap: 12px; }
+.favorite-card-header { display: flex; justify-content: space-between; gap: 12px; min-width: 0; }
+.favorite-title-wrap { min-width: 0; }
 .favorite-owner { display: flex; align-items: center; gap: 8px; color: var(--muted-text); font-size: 12px; }
-.favorite-card h3 { margin: 6px 0 0; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
+.favorite-card h3 { margin: 6px 0 0; max-width: 100%; overflow: hidden; text-overflow: ellipsis; white-space: nowrap; }
 .favorite-card-actions { margin-top: auto; padding-top: 18px; border-top: 1px solid var(--border-color); display: flex; gap: 8px; }
 .favorite-card-actions md-outlined-button { --md-outlined-button-outline-color: var(--outline); --md-outlined-button-label-text-color: var(--text-color); --md-outlined-button-icon-color: var(--text-color); }
 .empty-state { min-height: 50vh; display: flex; flex-direction: column; align-items: center; justify-content: center; text-align: center; color: var(--muted-text); }
@@ -226,5 +227,7 @@ md-filled-button, md-outlined-button, md-text-button { --md-filled-button-contai
 .field-with-action { display: flex; align-items: center; gap: 12px; }
 .field-with-action md-outlined-text-field { flex: 1 1 auto; min-width: 0; }
 .token-field { display: grid; grid-template-rows: 0fr; opacity: 0; overflow: hidden; transition: grid-template-rows .22s ease, opacity .22s ease; }
-.token-field.open { grid-template-rows: 1fr; opacity: 1; }
-.token-field > md-outlined-text-field { min-height: 0; }
+.token-field.open { grid-template-rows: 1fr; opacity: 1; overflow: visible; }
+.token-field-content { min-height: 0; overflow: hidden; padding-top: 4px; }
+.token-field.open .token-field-content { overflow: visible; }
+.token-field md-outlined-text-field { width: 100%; }
