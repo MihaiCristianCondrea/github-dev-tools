@@ -25,7 +25,7 @@ export class AppCard extends HTMLElement {
 					target="_blank"
 					aria-label="Open ${this.escapeAttribute(app.name)} on Google Play"
 				>
-					<md-icon slot="icon">play_arrow</md-icon>
+					<md-icon slot="icon">store</md-icon>
 					Google Play
 				</md-outlined-button>
 			</md-outlined-card>

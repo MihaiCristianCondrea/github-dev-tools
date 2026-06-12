@@ -18,4 +18,8 @@ Rules for `references/`:
 
 ## Material Web imports
 
-Keep Material Web custom element registration centralized in `src/presentation/material/MaterialElements.ts` unless there is a strong reason to add a separate import boundary.
+Keep Material Web custom element registration centralized in `src/core/material/MaterialElements.ts` unless there is a strong reason to add a separate import boundary.
+
+## Material Web styling
+
+Do not override Material Web component structure, sizing, shape, padding, borders, typography, cursor, ripple, icon placement, disabled behavior, or animation in application CSS. Prefer component attributes and slots, and limit CSS customization on Material Web components to supported color/design tokens unless a documented accessibility or layout exception is required.
