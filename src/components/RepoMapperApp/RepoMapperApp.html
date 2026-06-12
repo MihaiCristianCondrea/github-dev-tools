@@ -17,7 +17,7 @@
 	<header class="topbar">
 		<div class="topbar-title">
 			<md-icon-button id="drawer-open" class="icon-button" type="button" aria-label="Open menu"><md-icon>menu</md-icon></md-icon-button>
-			<h1>RepoMapper</h1>
+			<h1 id="topbar-title">Home</h1>
 		</div>
 	</header>
 
@@ -56,16 +56,12 @@
 				</div>
 			</section>
 
-			<section id="view-mapper" class="view-section" aria-labelledby="mapper-heading">
-				<div class="section-heading">
-					<h2 id="mapper-heading">RepoMapper</h2>
-					<p>Generate ASCII file trees from public repositories.</p>
-				</div>
+			<section id="view-mapper" class="view-section" aria-label="Repo Mapper">
 				<div class="panel">
 					<form id="mapper-form" class="form-stack">
 						<div class="field-with-action">
-							<md-filled-text-field type="url" id="mapper-url" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-filled-text-field>
-							<md-icon-button type="button" id="mapper-fav-btn" class="favorite-button hidden" toggle aria-label="Add favorite"><md-icon>star_border</md-icon><md-icon slot="selected">star</md-icon></md-icon-button>
+							<md-outlined-text-field type="url" id="mapper-url" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field>
+							<md-outlined-icon-button type="button" id="mapper-fav-btn" class="favorite-button" toggle disabled aria-label="Add favorite"><md-icon>star_border</md-icon><md-icon slot="selected">star</md-icon></md-outlined-icon-button>
 						</div>
 						<div class="settings-row">
 							<md-text-button type="button" class="text-button" data-token-toggle="mapper"><md-icon slot="icon">settings</md-icon><span id="mapper-token-label">Token Settings</span></md-text-button>
@@ -74,7 +70,7 @@
 								<md-outlined-button type="button" id="btn-format-paths" data-format="paths"><md-icon slot="icon">view_list</md-icon>Paths</md-outlined-button>
 							</div>
 						</div>
-						<md-filled-text-field id="mapper-token" class="hidden" type="password" label="Access Token (Optional)" placeholder="github_pat_..." autocomplete="off"></md-filled-text-field>
+						<div id="mapper-token-panel" class="token-field" aria-hidden="true"><md-outlined-text-field id="mapper-token" type="password" label="Access Token (Optional)" placeholder="github_pat_..." autocomplete="off"></md-outlined-text-field></div>
 						<div class="form-actions">
 							<md-filled-button type="submit" id="mapper-submit" class="primary-button"><md-icon slot="icon" data-icon>terminal</md-icon><span data-label>Generate Map</span></md-filled-button>
 						</div>
@@ -87,15 +83,11 @@
 				</div>
 			</section>
 
-			<section id="view-releases" class="view-section" aria-labelledby="releases-heading">
-				<div class="section-heading">
-					<h2 id="releases-heading">Release Stats</h2>
-					<p>Visualize download counts and assets for GitHub releases.</p>
-				</div>
+			<section id="view-releases" class="view-section" aria-label="Release Stats">
 				<div class="panel"><form id="releases-form" class="form-stack">
-					<div class="field-with-action"><md-filled-text-field type="url" id="releases-url" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-filled-text-field><md-icon-button type="button" id="releases-fav-btn" class="favorite-button hidden" toggle aria-label="Add favorite"><md-icon>star_border</md-icon><md-icon slot="selected">star</md-icon></md-icon-button></div>
+					<div class="field-with-action"><md-outlined-text-field type="url" id="releases-url" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field><md-outlined-icon-button type="button" id="releases-fav-btn" class="favorite-button" toggle disabled aria-label="Add favorite"><md-icon>star_border</md-icon><md-icon slot="selected">star</md-icon></md-outlined-icon-button></div>
 					<div class="settings-row"><md-text-button type="button" class="text-button" data-token-toggle="releases"><md-icon slot="icon">settings</md-icon><span id="releases-token-label">Token Settings</span></md-text-button></div>
-					<md-filled-text-field id="releases-token" class="hidden" type="password" label="Access Token (Optional)" placeholder="github_pat_..." autocomplete="off"></md-filled-text-field>
+					<div id="releases-token-panel" class="token-field" aria-hidden="true"><md-outlined-text-field id="releases-token" type="password" label="Access Token (Optional)" placeholder="github_pat_..." autocomplete="off"></md-outlined-text-field></div>
 					<div class="form-actions"><md-filled-button type="submit" id="releases-submit" class="primary-button"><md-icon slot="icon" data-icon>analytics</md-icon><span data-label>Analyze</span></md-filled-button></div>
 				</form></div>
 				<div id="releases-error" class="error-box hidden"><md-icon>error</md-icon><span id="releases-error-text"></span></div>
@@ -105,15 +97,13 @@
 				</div>
 			</section>
 
-			<section id="view-gitpatch" class="view-section" aria-labelledby="patch-heading">
-				<div class="section-heading"><h2 id="patch-heading">Git Patch</h2><p>Extract raw .patch files from commits for git apply.</p></div>
-				<div class="panel"><form id="patch-form" class="form-stack"><md-filled-text-field type="url" id="patch-url" label="Commit URL" placeholder="https://github.com/..." autocomplete="url"></md-filled-text-field><div class="form-actions"><md-filled-button type="submit" id="patch-submit" class="primary-button"><md-icon slot="icon" data-icon>difference</md-icon><span data-label>Get Patch</span></md-filled-button></div></form></div>
+			<section id="view-gitpatch" class="view-section" aria-label="Git Patch">
+				<div class="panel"><form id="patch-form" class="form-stack"><md-outlined-text-field type="url" id="patch-url" label="Commit URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field><div class="form-actions"><md-filled-button type="submit" id="patch-submit" class="primary-button"><md-icon slot="icon" data-icon>difference</md-icon><span data-label>Get Patch</span></md-filled-button></div></form></div>
 				<div id="patch-error" class="error-box hidden"><md-icon>error</md-icon><span id="patch-error-text"></span></div>
 				<div id="patch-result" class="result-stack hidden"><div class="result-toolbar"><span class="ready-badge"><md-icon>check</md-icon>Ready to Apply</span><div class="button-row"><md-outlined-button type="button" id="patch-download-btn" class="secondary-button"><md-icon slot="icon">download</md-icon><span>Download</span></md-outlined-button><md-outlined-button type="button" id="patch-copy-btn" class="secondary-button"><md-icon slot="icon" data-icon>content_copy</md-icon><span data-label>Copy</span></md-outlined-button></div></div><div class="code-panel"><div class="code-title"><md-icon>integration_instructions</md-icon><span>PATCH</span></div><pre><code id="patch-code"></code></pre></div></div>
 			</section>
 
-			<section id="view-favorites" class="view-section" aria-labelledby="favorites-heading">
-				<div class="section-heading"><h2 id="favorites-heading">Favorites</h2><p>Quick access to your saved repositories.</p></div>
+			<section id="view-favorites" class="view-section" aria-label="Favorites">
 				<div id="favorites-grid" class="favorites-grid"></div>
 				<div id="favorites-empty" class="empty-state hidden"><div><md-icon>star_border</md-icon></div><h2>No favorites yet</h2><p>Star repositories in RepoMapper or Release Stats to save them here.</p></div>
 			</section>

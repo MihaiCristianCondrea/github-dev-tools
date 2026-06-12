@@ -12,6 +12,15 @@ import html from "./RepoMapperApp.html?raw";
 
 type ViewId = "home" | "favorites" | "mapper" | "releases" | "gitpatch";
 
+const VIEW_TITLES: Record<ViewId, string> = {
+	home: "Home",
+	favorites: "Favorites",
+	mapper: "Repo Mapper",
+	releases: "Release Stats",
+	gitpatch: "Git Patch",
+};
+
+
 type AppState = {
 	currentView: ViewId;
 	favorites: FavoriteRepository[];
@@ -134,6 +143,8 @@ export default class RepoMapperApp extends WebComponent {
 		const activeNav = this.select(`#nav-${viewId}`);
 		activeNav?.classList.add("active");
 		activeNav?.querySelector("md-icon, .material-symbols-outlined")?.classList.add("filled-icon");
+		const topbarTitle = this.select("#topbar-title");
+		if (topbarTitle) topbarTitle.textContent = VIEW_TITLES[viewId];
 
 		if (url && viewId === "mapper") {
 			this.select<HTMLInputElement>("#mapper-url")!.value = url;
@@ -277,17 +288,18 @@ export default class RepoMapperApp extends WebComponent {
 		if (!button) return;
 
 		const active = !!parsed && this.isFavorite(parsed);
-		button.classList.toggle("hidden", !parsed);
+		button.toggleAttribute("disabled", !parsed);
 		button.toggleAttribute("selected", active);
 		button.setAttribute("aria-label", active ? "Remove favorite" : "Add favorite");
 	}
 
 	private toggleToken(view: "mapper" | "releases"): void {
-		const container = this.select(`#${view}-token`);
+		const panel = this.select(`#${view}-token-panel`);
 		const label = this.select(`#${view}-token-label`);
-		if (!container || !label) return;
-		const shouldShow = container.classList.contains("hidden");
-		container.classList.toggle("hidden", !shouldShow);
+		if (!panel || !label) return;
+		const shouldShow = !panel.classList.contains("open");
+		panel.classList.toggle("open", shouldShow);
+		panel.setAttribute("aria-hidden", String(!shouldShow));
 		label.textContent = shouldShow ? "Hide Settings" : "Token Settings";
 	}
 

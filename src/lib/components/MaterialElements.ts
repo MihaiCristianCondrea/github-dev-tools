@@ -1,10 +1,11 @@
 const MATERIAL_WEB_COMPONENT_IMPORTS = [
 	"https://cdn.jsdelivr.net/npm/@material/web@2.3.0/icon/icon.js/+esm",
 	"https://cdn.jsdelivr.net/npm/@material/web@2.3.0/iconbutton/icon-button.js/+esm",
+	"https://cdn.jsdelivr.net/npm/@material/web@2.3.0/iconbutton/outlined-icon-button.js/+esm",
 	"https://cdn.jsdelivr.net/npm/@material/web@2.3.0/button/filled-button.js/+esm",
 	"https://cdn.jsdelivr.net/npm/@material/web@2.3.0/button/outlined-button.js/+esm",
 	"https://cdn.jsdelivr.net/npm/@material/web@2.3.0/button/text-button.js/+esm",
-	"https://cdn.jsdelivr.net/npm/@material/web@2.3.0/textfield/filled-text-field.js/+esm",
+	"https://cdn.jsdelivr.net/npm/@material/web@2.3.0/textfield/outlined-text-field.js/+esm",
 ];
 
 const MATERIAL_ICON_CLASS = "material-symbols-outlined";
@@ -78,7 +79,7 @@ class MdButtonFallback extends HTMLElement {
 	}
 }
 
-class MdFilledTextFieldFallback extends HTMLElement {
+class MdOutlinedTextFieldFallback extends HTMLElement {
 	private readonly input = document.createElement("input");
 	private readonly labelElement = document.createElement("label");
 	private readonly shadow = this.attachShadow({ mode: "open" });
@@ -92,10 +93,10 @@ class MdFilledTextFieldFallback extends HTMLElement {
 		this.shadow.innerHTML = `
 			<style>
 				:host { display: block; width: 100%; }
-				label { display: block; margin: 0 0 6px; color: var(--md-filled-text-field-label-text-color, inherit); font: inherit; font-size: 13px; font-weight: 600; }
-				input { box-sizing: border-box; width: 100%; min-height: 56px; border: 0; border-bottom: 2px solid transparent; border-radius: 12px 12px 4px 4px; padding: 18px 16px 10px; background: var(--md-filled-text-field-container-color, #f1f3f4); color: var(--md-filled-text-field-input-text-color, inherit); font: inherit; outline: none; }
+				label { display: block; margin: 0 0 6px; color: var(--md-outlined-text-field-label-text-color, inherit); font: inherit; font-size: 13px; font-weight: 600; }
+				input { box-sizing: border-box; width: 100%; min-height: 56px; border: 1px solid var(--md-outlined-text-field-outline-color, currentColor); border-radius: 4px; padding: 18px 16px 10px; background: var(--md-outlined-text-field-container-color, transparent); color: var(--md-outlined-text-field-input-text-color, inherit); font: inherit; outline: none; }
 				input::placeholder { color: color-mix(in srgb, currentColor 55%, transparent); }
-				input:focus { border-bottom-color: var(--md-filled-text-field-focus-active-indicator-color, currentColor); }
+				input:focus { border-color: var(--md-outlined-text-field-focus-outline-color, currentColor); }
 				:host([disabled]) input { cursor: not-allowed; opacity: .72; }
 			</style>
 		`;
@@ -163,7 +164,8 @@ const defineFallbackMaterialElements = (): void => {
 	defineElement("md-filled-button", MdButtonFallback);
 	defineElement("md-outlined-button", MdButtonFallback);
 	defineElement("md-text-button", MdButtonFallback);
-	defineElement("md-filled-text-field", MdFilledTextFieldFallback);
+	defineElement("md-outlined-icon-button", MdButtonFallback);
+	defineElement("md-outlined-text-field", MdOutlinedTextFieldFallback);
 };
 
 const loadMaterialWebComponents = async (): Promise<void> => {
