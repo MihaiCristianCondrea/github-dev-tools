@@ -10,6 +10,7 @@ export class AppCard extends HTMLElement {
 			? `<img src="${this.escapeAttribute(app.iconUrl)}" alt="" loading="lazy" />`
 			: "<md-icon class=\"app-icon-placeholder\">apps</md-icon>";
 
+		// Material buttons support link-button attributes; keep actions as a single interactive element.
 		this.innerHTML = `
 			<article class="app-card">
 				<div class="app-icon">${icon}</div>
@@ -18,12 +19,15 @@ export class AppCard extends HTMLElement {
 					<p class="app-category">${this.escape(app.category)}</p>
 					<p>${this.escape(app.description)}</p>
 				</div>
-				<a class="play-link" href="${this.escapeAttribute(app.storeUrl)}" target="_blank" rel="noopener noreferrer" aria-label="Open ${this.escapeAttribute(app.name)} on Google Play">
-					<md-outlined-button>
-						<md-icon slot="icon">play_arrow</md-icon>
-						Google Play
-					</md-outlined-button>
-				</a>
+				<md-outlined-button
+					class="play-link"
+					href="${this.escapeAttribute(app.storeUrl)}"
+					target="_blank"
+					aria-label="Open ${this.escapeAttribute(app.name)} on Google Play"
+				>
+					<md-icon slot="icon">play_arrow</md-icon>
+					Google Play
+				</md-outlined-button>
 			</article>
 		`;
 	}
