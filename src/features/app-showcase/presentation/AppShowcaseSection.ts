@@ -41,7 +41,7 @@ export class AppShowcaseSection extends HTMLElement {
 		this.innerHTML = `
 			<section class="showcase-section" aria-labelledby="showcase-title">
 				${this.renderHeader()}
-				<div class="showcase-loading"><md-icon class="spin">progress_activity</md-icon><span>Loading apps…</span></div>
+				<div class="showcase-loading"><md-circular-progress indeterminate aria-label="Loading apps"></md-circular-progress><span>Loading apps…</span></div>
 			</section>
 		`;
 	}
@@ -72,9 +72,10 @@ export class AppShowcaseSection extends HTMLElement {
 		return `
 			<div class="section-heading">
 				<h2 id="showcase-title">More apps from Mihai-Cristian</h2>
-				<a class="view-all-link" href="https://play.google.com/store/apps/dev?id=5390214922640123642" target="_blank" rel="noopener noreferrer">
-					<md-text-button><md-icon slot="icon">open_in_new</md-icon>View all apps</md-text-button>
-				</a>
+				<md-outlined-button class="view-all-link" href="https://play.google.com/store/apps/dev?id=5390214922640123642" target="_blank" aria-label="View all apps on Google Play">
+					<md-icon slot="icon">open_in_new</md-icon>
+					View all apps
+				</md-outlined-button>
 			</div>
 		`;
 	}

@@ -41,6 +41,8 @@ type AppState = {
 };
 
 export default class RepoMapperApp extends WebComponent {
+	private pendingActions = new Set<"mapper" | "releases" | "patch">();
+
 	private state: AppState = {
 		currentView: "home",
 		favorites: [],
@@ -103,8 +105,11 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private bindNavigation(): void {
-		this.select("#drawer-open")?.addEventListener("click", () => this.toggleDrawer(true));
+		this.select("#drawer-open")?.addEventListener("click", () => this.toggleDrawer());
 		this.select("#drawer-close")?.addEventListener("click", () => this.toggleDrawer(false));
+		this.select<NavigationDrawerElement>("#drawer")?.addEventListener("navigation-drawer-changed", (event) =>
+			this.syncDrawerState((event as CustomEvent<{ opened: boolean }>).detail.opened)
+		);
 		this.selectAll<HTMLElement>("[data-view]").forEach((button) => {
 			const activate = () => {
 				const view = button.dataset.view as ViewId;
@@ -150,7 +155,16 @@ export default class RepoMapperApp extends WebComponent {
 	private toggleDrawer(forceOpen?: boolean): void {
 		const drawer = this.select<NavigationDrawerElement>("#drawer");
 		if (!drawer) return;
-		drawer.opened = forceOpen ?? !drawer.opened;
+		const isOpen = forceOpen ?? !drawer.opened;
+		drawer.opened = isOpen;
+		this.syncDrawerState(isOpen);
+	}
+
+	private syncDrawerState(isOpen: boolean): void {
+		this.select("#drawer-open")?.setAttribute("aria-expanded", String(isOpen));
+		this.select("#drawer-open")?.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
+		const triggerIcon = this.select("#drawer-open-icon");
+		if (triggerIcon) triggerIcon.textContent = isOpen ? "menu_open" : "menu";
 	}
 
 	private navigateTo(viewId: ViewId, url?: string, closeDrawer = true): void {
@@ -231,10 +245,9 @@ export default class RepoMapperApp extends WebComponent {
 		const title = document.createElement("h3");
 		title.textContent = favorite.repo;
 		titleWrap.append(owner, title);
-		const remove = document.createElement("button");
-		remove.className = "icon-button";
-		remove.type = "button";
-		remove.ariaLabel = `Remove ${favorite.owner}/${favorite.repo} from favorites`;
+		const remove = document.createElement("md-icon-button");
+		remove.setAttribute("type", "button");
+		remove.setAttribute("aria-label", `Remove ${favorite.owner}/${favorite.repo} from favorites`);
 		const removeIcon = this.createIcon("star");
 		removeIcon.classList.add("filled-icon");
 		remove.append(removeIcon);
@@ -256,10 +269,12 @@ export default class RepoMapperApp extends WebComponent {
 		return card;
 	}
 
-	private createFavoriteAction(iconName: string, label: string, onClick: () => void): HTMLButtonElement {
-		const button = document.createElement("button");
-		button.type = "button";
-		button.append(this.createIcon(iconName), document.createTextNode(label));
+	private createFavoriteAction(iconName: string, label: string, onClick: () => void): HTMLElement {
+		const button = document.createElement("md-outlined-button");
+		button.setAttribute("type", "button");
+		const icon = this.createIcon(iconName);
+		icon.setAttribute("slot", "icon");
+		button.append(icon, document.createTextNode(label));
 		button.addEventListener("click", onClick);
 		return button;
 	}
@@ -339,6 +354,7 @@ export default class RepoMapperApp extends WebComponent {
 
 	private async handleMapperSubmit(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
+		if (!this.startPendingAction("mapper")) return;
 		const url = this.select<HTMLInputElement>("#mapper-url")?.value ?? "";
 		const token = this.select<HTMLInputElement>("#mapper-token")?.value ?? "";
 		const result = this.select("#mapper-result");
@@ -351,6 +367,7 @@ export default class RepoMapperApp extends WebComponent {
 		if (!parsed) {
 			this.showError("mapper", "Invalid GitHub URL");
 			resetButton();
+			this.finishPendingAction("mapper");
 			return;
 		}
 
@@ -364,6 +381,7 @@ export default class RepoMapperApp extends WebComponent {
 			this.showError("mapper", this.errorMessage(error));
 		} finally {
 			resetButton();
+			this.finishPendingAction("mapper");
 		}
 	}
 
@@ -376,6 +394,7 @@ export default class RepoMapperApp extends WebComponent {
 
 	private async handleReleasesSubmit(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
+		if (!this.startPendingAction("releases")) return;
 		const url = this.select<HTMLInputElement>("#releases-url")?.value ?? "";
 		const token = this.select<HTMLInputElement>("#releases-token")?.value ?? "";
 		const result = this.select("#releases-result");
@@ -388,6 +407,7 @@ export default class RepoMapperApp extends WebComponent {
 		if (!parsed) {
 			this.showError("releases", "Invalid GitHub URL");
 			resetButton();
+			this.finishPendingAction("releases");
 			return;
 		}
 
@@ -400,6 +420,7 @@ export default class RepoMapperApp extends WebComponent {
 			this.showError("releases", this.errorMessage(error));
 		} finally {
 			resetButton();
+			this.finishPendingAction("releases");
 		}
 	}
 
@@ -463,6 +484,7 @@ export default class RepoMapperApp extends WebComponent {
 
 	private async handlePatchSubmit(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
+		if (!this.startPendingAction("patch")) return;
 		const url = this.select<HTMLInputElement>("#patch-url")?.value ?? "";
 		const result = this.select("#patch-result");
 		const parsed = GitHubUrlParser.parseCommitUrl(url);
@@ -474,6 +496,7 @@ export default class RepoMapperApp extends WebComponent {
 		if (!parsed) {
 			this.showError("patch", "Invalid Commit URL");
 			resetButton();
+			this.finishPendingAction("patch");
 			return;
 		}
 
@@ -485,6 +508,7 @@ export default class RepoMapperApp extends WebComponent {
 			this.showError("patch", this.errorMessage(error));
 		} finally {
 			resetButton();
+			this.finishPendingAction("patch");
 		}
 	}
 
@@ -525,28 +549,44 @@ export default class RepoMapperApp extends WebComponent {
 		this.select(`#${scope}-error`)?.classList.add("hidden");
 	}
 
-	private setLoading(buttonSelector: string, label: string, iconName: string): () => void {
-		return this.setButtonState(buttonSelector, label, iconName, true, "spin");
+	private startPendingAction(action: "mapper" | "releases" | "patch"): boolean {
+		if (this.pendingActions.has(action)) return false;
+		this.pendingActions.add(action);
+		return true;
 	}
 
-	private setButtonState(buttonSelector: string, label: string, iconName: string, disabled: boolean, iconClass: string): () => void {
+	private finishPendingAction(action: "mapper" | "releases" | "patch"): void {
+		this.pendingActions.delete(action);
+	}
+
+	private setLoading(buttonSelector: string, label: string, _iconName: string): () => void {
+		const progress = document.createElement("md-circular-progress");
+		progress.setAttribute("slot", "icon");
+		progress.setAttribute("data-icon", "");
+		progress.setAttribute("indeterminate", "");
+		progress.setAttribute("aria-label", "Loading");
+		return this.setButtonState(buttonSelector, label, progress, true, "is-loading");
+	}
+
+	private setButtonState(buttonSelector: string, label: string, iconReplacement: HTMLElement | string, disabled: boolean, stateClass: string): () => void {
 		const button = this.select<HTMLElement>(buttonSelector);
 		const icon = button?.querySelector<HTMLElement>("[data-icon]");
 		const text = button?.querySelector<HTMLElement>("[data-label]");
 		if (!button || !icon || !text) return () => {};
 
-		const originalIcon = icon.textContent ?? "";
+		const replacement = typeof iconReplacement === "string" ? this.createSlottedStateIcon(iconReplacement) : iconReplacement;
+		const originalIcon = icon.cloneNode(true);
 		const originalText = text.textContent ?? "";
 		const wasDisabled = button.hasAttribute("disabled");
 
 		button.toggleAttribute("disabled", disabled);
-		icon.textContent = iconName;
-		icon.classList.add(iconClass);
+		button.classList.add(stateClass);
+		icon.replaceWith(replacement);
 		text.textContent = label;
 		return () => {
 			button.toggleAttribute("disabled", wasDisabled);
-			icon.textContent = originalIcon;
-			icon.classList.remove(iconClass);
+			button.classList.remove(stateClass);
+			replacement.replaceWith(originalIcon);
 			text.textContent = originalText;
 		};
 	}
@@ -554,6 +594,13 @@ export default class RepoMapperApp extends WebComponent {
 	private createIcon(name: string): HTMLElement {
 		const icon = document.createElement("md-icon");
 		icon.textContent = name;
+		return icon;
+	}
+
+	private createSlottedStateIcon(name: string): HTMLElement {
+		const icon = this.createIcon(name);
+		icon.setAttribute("slot", "icon");
+		icon.setAttribute("data-icon", "");
 		return icon;
 	}
 
