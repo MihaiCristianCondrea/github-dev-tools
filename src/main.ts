@@ -11,9 +11,9 @@ const app = async () => {
 	"use strict";
 
 	renderLoadingState();
-	void defineMaterialElements();
 
 	try {
+		await defineMaterialElements();
 		await DataManager.init();
 		await GlobalState.init();
 		onApplicationStart();
