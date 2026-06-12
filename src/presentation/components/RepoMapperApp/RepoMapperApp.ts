@@ -13,6 +13,7 @@ import css from "./RepoMapperApp.css?raw";
 import html from "./RepoMapperApp.html?raw";
 
 type ViewId = "home" | "favorites" | "mapper" | "releases" | "gitpatch";
+type NavigationDrawerElement = HTMLElement & { opened: boolean };
 
 const VIEW_TITLES: Record<ViewId, string> = {
 	home: "Home",
@@ -104,7 +105,6 @@ export default class RepoMapperApp extends WebComponent {
 	private bindNavigation(): void {
 		this.select("#drawer-open")?.addEventListener("click", () => this.toggleDrawer(true));
 		this.select("#drawer-close")?.addEventListener("click", () => this.toggleDrawer(false));
-		this.select("#drawer-scrim")?.addEventListener("click", () => this.toggleDrawer(false));
 		this.selectAll<HTMLElement>("[data-view]").forEach((button) => {
 			const activate = () => {
 				const view = button.dataset.view as ViewId;
@@ -136,7 +136,7 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private bindRepositoryMapFormatControls(): void {
-		this.selectAll<HTMLButtonElement>("[data-format]").forEach((button) => {
+		this.selectAll<HTMLElement>("[data-format]").forEach((button) => {
 			button.addEventListener("click", () => this.setRepositoryMapFormat(button.dataset.format as RepositoryMapFormat));
 		});
 		this.select("#mapper-copy-btn")?.addEventListener("click", () => this.copyMapperOutput());
@@ -148,11 +148,9 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private toggleDrawer(forceOpen?: boolean): void {
-		const drawer = this.select("#drawer");
-		const scrim = this.select("#drawer-scrim");
-		const shouldOpen = forceOpen ?? !drawer?.classList.contains("open");
-		drawer?.classList.toggle("open", shouldOpen);
-		scrim?.classList.toggle("open", shouldOpen);
+		const drawer = this.select<NavigationDrawerElement>("#drawer");
+		if (!drawer) return;
+		drawer.opened = forceOpen ?? !drawer.opened;
 	}
 
 	private navigateTo(viewId: ViewId, url?: string, closeDrawer = true): void {
@@ -221,7 +219,7 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private createFavoriteCard(favorite: FavoriteRepository): HTMLElement {
-		const card = document.createElement("article");
+		const card = document.createElement("md-outlined-card");
 		card.className = "favorite-card";
 
 		const header = document.createElement("div");
@@ -315,6 +313,11 @@ export default class RepoMapperApp extends WebComponent {
 		button.toggleAttribute("disabled", !parsed);
 		button.toggleAttribute("selected", active);
 		button.setAttribute("aria-label", active ? "Remove favorite" : "Add favorite");
+		const icon = button.querySelector("md-icon");
+		if (icon) {
+			icon.textContent = active ? "star" : "star_border";
+			icon.classList.toggle("filled-icon", active);
+		}
 	}
 
 	private toggleToken(view: "mapper" | "releases"): void {
@@ -329,8 +332,8 @@ export default class RepoMapperApp extends WebComponent {
 
 	private setRepositoryMapFormat(format: RepositoryMapFormat): void {
 		this.state.mapper.format = format;
-		this.select("#btn-format-ascii")?.classList.toggle("selected", format === "ascii");
-		this.select("#btn-format-paths")?.classList.toggle("selected", format === "paths");
+		this.select("#btn-format-ascii")?.toggleAttribute("selected", format === "ascii");
+		this.select("#btn-format-paths")?.toggleAttribute("selected", format === "paths");
 		if (this.state.mapper.rawPaths.length > 0) this.renderMapperOutput();
 	}
 

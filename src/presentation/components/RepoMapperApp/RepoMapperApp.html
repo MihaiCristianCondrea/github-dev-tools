@@ -1,18 +1,17 @@
 <div class="app-shell">
-	<div id="drawer-scrim" class="drawer-scrim" aria-hidden="true"></div>
-	<nav id="drawer" class="drawer" aria-label="Primary navigation">
+	<md-navigation-drawer-modal id="drawer" class="drawer" pivot="start" aria-label="Primary navigation" aria-modal="true">
 		<div class="drawer-header">
 			<h2>Menu</h2>
 			<md-icon-button id="drawer-close" class="icon-button" type="button" aria-label="Close menu"><md-icon>close</md-icon></md-icon-button>
 		</div>
 		<div class="drawer-content">
-			<md-text-button id="nav-home" class="nav-item" type="button" data-view="home"><md-icon slot="icon">home</md-icon><span>Home</span></md-text-button>
-			<md-text-button id="nav-favorites" class="nav-item" type="button" data-view="favorites"><md-icon slot="icon">star</md-icon><span>Favorites</span></md-text-button>
-			<md-text-button id="nav-mapper" class="nav-item" type="button" data-view="mapper"><md-icon slot="icon">terminal</md-icon><span>Repo Mapper</span></md-text-button>
-			<md-text-button id="nav-releases" class="nav-item" type="button" data-view="releases"><md-icon slot="icon">bar_chart</md-icon><span>Release Stats</span></md-text-button>
-			<md-text-button id="nav-gitpatch" class="nav-item" type="button" data-view="gitpatch"><md-icon slot="icon">difference</md-icon><span>Git Patch</span></md-text-button>
+			<md-item id="nav-home" class="nav-item" data-view="home" role="button" tabindex="0"><md-icon slot="start">home</md-icon>Home</md-item>
+			<md-item id="nav-favorites" class="nav-item" data-view="favorites" role="button" tabindex="0"><md-icon slot="start">star</md-icon>Favorites</md-item>
+			<md-item id="nav-mapper" class="nav-item" data-view="mapper" role="button" tabindex="0"><md-icon slot="start">terminal</md-icon>Repo Mapper</md-item>
+			<md-item id="nav-releases" class="nav-item" data-view="releases" role="button" tabindex="0"><md-icon slot="start">bar_chart</md-icon>Release Stats</md-item>
+			<md-item id="nav-gitpatch" class="nav-item" data-view="gitpatch" role="button" tabindex="0"><md-icon slot="start">difference</md-icon>Git Patch</md-item>
 		</div>
-	</nav>
+	</md-navigation-drawer-modal>
 
 	<header class="topbar">
 		<div class="topbar-title">
@@ -30,25 +29,25 @@
 					<p>Fast browser-native tools for public GitHub repositories, with optional token support for higher API limits.</p>
 				</div>
 				<div class="tool-grid">
-					<button class="tool-card" type="button" data-view="mapper">
+					<md-outlined-card class="tool-card" data-view="mapper" role="button" tabindex="0">
 						<span class="tool-icon material-symbols-outlined">terminal</span>
 						<span class="tool-card-title">Repo Mapper</span>
 						<span class="tool-card-copy">Generate ASCII directory trees or plain path lists from any public repository.</span>
 						<span class="tool-link">Launch Tool <md-icon>arrow_forward</md-icon></span>
-					</button>
-					<button class="tool-card" type="button" data-view="releases">
+					</md-outlined-card>
+					<md-outlined-card class="tool-card" data-view="releases" role="button" tabindex="0">
 						<span class="tool-icon material-symbols-outlined">bar_chart</span>
 						<span class="tool-card-title">Release Stats</span>
 						<span class="tool-card-copy">Visualize download counts and asset performance for GitHub releases.</span>
 						<span class="tool-link">Launch Tool <md-icon>arrow_forward</md-icon></span>
-					</button>
-					<button class="tool-card wide" type="button" data-view="gitpatch">
+					</md-outlined-card>
+					<md-outlined-card class="tool-card wide" data-view="gitpatch" role="button" tabindex="0">
 						<span class="tool-icon material-symbols-outlined">difference</span>
 						<span class="tool-card-title">Git Patch</span>
 						<span class="tool-card-copy">Extract raw .patch files from GitHub commit URLs for git apply.</span>
 						<span class="tool-link">Launch Tool <md-icon>arrow_forward</md-icon></span>
 						<span class="tool-watermark material-symbols-outlined">integration_instructions</span>
-					</button>
+					</md-outlined-card>
 				</div>
 				<app-showcase-section id="app-showcase"></app-showcase-section>
 
@@ -63,14 +62,14 @@
 					<form id="mapper-form" class="form-stack">
 						<div class="field-with-action">
 							<md-outlined-text-field type="url" id="mapper-url" list="mapper-datalist" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field>
-							<md-outlined-icon-button type="button" id="mapper-fav-btn" class="favorite-button" toggle disabled aria-label="Add favorite"><md-icon>star_border</md-icon><md-icon slot="selected">star</md-icon></md-outlined-icon-button>
+							<md-outlined-button type="button" id="mapper-fav-btn" class="favorite-button" disabled aria-label="Add favorite"><md-icon slot="icon">star_border</md-icon><span class="visually-hidden">Favorite</span></md-outlined-button>
 						</div>
 						<div class="settings-row">
 							<md-text-button type="button" class="text-button" data-token-toggle="mapper"><md-icon slot="icon">settings</md-icon><span id="mapper-token-label">Token Settings</span></md-text-button>
-							<div class="segmented" role="group" aria-label="Mapper output format">
-								<md-outlined-button type="button" id="btn-format-ascii" data-format="ascii" class="selected"><md-icon slot="icon">terminal</md-icon>ASCII</md-outlined-button>
-								<md-outlined-button type="button" id="btn-format-paths" data-format="paths"><md-icon slot="icon">view_list</md-icon>Paths</md-outlined-button>
-							</div>
+							<md-outlined-segmented-button-set class="segmented" aria-label="Mapper output format">
+								<md-outlined-segmented-button id="btn-format-ascii" data-format="ascii" selected label="ASCII"><md-icon slot="icon">terminal</md-icon></md-outlined-segmented-button>
+								<md-outlined-segmented-button id="btn-format-paths" data-format="paths" label="Paths"><md-icon slot="icon">view_list</md-icon></md-outlined-segmented-button>
+							</md-outlined-segmented-button-set>
 						</div>
 						<div id="mapper-token-panel" class="token-field" aria-hidden="true"><md-outlined-text-field id="mapper-token" type="password" label="Access Token (Optional)" placeholder="github_pat_..." autocomplete="off"></md-outlined-text-field></div>
 						<div class="form-actions">
@@ -87,7 +86,7 @@
 
 			<section id="view-releases" class="view-section" aria-label="Release Stats">
 				<div class="panel"><form id="releases-form" class="form-stack">
-					<div class="field-with-action"><md-outlined-text-field type="url" id="releases-url" list="releases-datalist" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field><md-outlined-icon-button type="button" id="releases-fav-btn" class="favorite-button" toggle disabled aria-label="Add favorite"><md-icon>star_border</md-icon><md-icon slot="selected">star</md-icon></md-outlined-icon-button></div>
+					<div class="field-with-action"><md-outlined-text-field type="url" id="releases-url" list="releases-datalist" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field><md-outlined-button type="button" id="releases-fav-btn" class="favorite-button" disabled aria-label="Add favorite"><md-icon slot="icon">star_border</md-icon><span class="visually-hidden">Favorite</span></md-outlined-button></div>
 					<div class="settings-row"><md-text-button type="button" class="text-button" data-token-toggle="releases"><md-icon slot="icon">settings</md-icon><span id="releases-token-label">Token Settings</span></md-text-button></div>
 					<div id="releases-token-panel" class="token-field" aria-hidden="true"><md-outlined-text-field id="releases-token" type="password" label="Access Token (Optional)" placeholder="github_pat_..." autocomplete="off"></md-outlined-text-field></div>
 					<div class="form-actions"><md-filled-button type="submit" id="releases-submit" class="primary-button"><md-icon slot="icon" data-icon>analytics</md-icon><span data-label>Analyze</span></md-filled-button></div>

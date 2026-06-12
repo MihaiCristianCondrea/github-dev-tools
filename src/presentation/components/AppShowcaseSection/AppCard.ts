@@ -12,7 +12,7 @@ export class AppCard extends HTMLElement {
 
 		// Material buttons support link-button attributes; keep actions as a single interactive element.
 		this.innerHTML = `
-			<article class="app-card">
+			<md-outlined-card class="app-card">
 				<div class="app-icon">${icon}</div>
 				<div class="app-content">
 					<h3>${this.escape(app.name)}</h3>
@@ -28,7 +28,7 @@ export class AppCard extends HTMLElement {
 					<md-icon slot="icon">play_arrow</md-icon>
 					Google Play
 				</md-outlined-button>
-			</article>
+			</md-outlined-card>
 		`;
 	}
 
