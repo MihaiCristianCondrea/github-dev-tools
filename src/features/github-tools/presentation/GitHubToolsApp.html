@@ -112,12 +112,12 @@
 			<section id="view-gitpatch" class="view-section" aria-label="Git Patch">
 				<div class="panel"><form id="patch-form" class="form-stack"><md-outlined-text-field type="url" id="patch-url" label="Commit URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field><div class="form-actions"><md-filled-button type="submit" id="patch-submit" class="primary-button"><md-icon slot="icon" data-icon>difference</md-icon><span data-label>Get Patch</span></md-filled-button></div></form></div>
 				<div id="patch-error" class="error-box hidden"><md-icon>error</md-icon><span id="patch-error-text"></span></div>
-				<div id="patch-result" class="result-stack hidden"><div class="result-toolbar"><span class="ready-badge"><md-icon>check</md-icon>Ready to Apply</span><div class="button-row"><md-outlined-button type="button" id="patch-download-btn" class="secondary-button"><md-icon slot="icon">download</md-icon><span>Download</span></md-outlined-button><md-outlined-button type="button" id="patch-copy-btn" class="secondary-button"><md-icon slot="icon" data-icon>content_copy</md-icon><span data-label>Copy</span></md-outlined-button></div></div><div class="code-panel"><div class="code-title"><md-icon>integration_instructions</md-icon><span>PATCH</span></div><pre><code id="patch-code"></code></pre></div></div>
+				<div id="patch-result" class="result-stack hidden"><div class="code-panel"><div class="code-title output-title"><span class="code-title-label"><md-icon>integration_instructions</md-icon><span>PATCH</span></span><md-chip-set class="output-chip-set" aria-label="Patch actions and status"><md-assist-chip class="output-chip" disabled aria-label="Patch is ready to apply"><md-icon slot="icon">check</md-icon><span>Ready to Apply</span></md-assist-chip><md-assist-chip type="button" id="patch-download-btn" class="output-chip action-chip"><md-icon slot="icon">download</md-icon><span>Download</span></md-assist-chip><md-assist-chip type="button" id="patch-copy-btn" class="output-chip action-chip"><md-icon slot="icon" data-icon>content_copy</md-icon><span data-label>Copy</span></md-assist-chip></md-chip-set></div><pre><code id="patch-code"></code></pre></div></div>
 			</section>
 
 			<section id="view-favorites" class="view-section" aria-label="Favorites">
 				<div id="favorites-grid" class="favorites-grid"></div>
-				<div id="favorites-empty" class="empty-state hidden"><div><md-icon>star_border</md-icon></div><h2>No favorites yet</h2><p>Star repositories in Repo Mapper or Release Stats to save them here.</p></div>
+				<div id="favorites-empty" class="empty-state hidden"><div><md-icon>star</md-icon></div><h2>No favorites yet</h2><p>Star repositories in Repo Mapper or Release Stats to save them here.</p></div>
 			</section>
 		</div>
 	</main>
