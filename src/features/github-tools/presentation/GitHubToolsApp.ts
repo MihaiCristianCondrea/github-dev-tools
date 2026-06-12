@@ -1,6 +1,7 @@
 import DataServices from "../../../app/DataServices";
 import type { AppShowcaseSection } from "../../app-showcase/presentation/AppShowcaseSection";
 import "../../app-showcase/presentation/AppShowcaseSection";
+import "../core/components/ParticleNetworkBackground";
 import type { FavoriteRepository, RepositoryRef } from "../core/models/Repository";
 import { repositoryUrl } from "../core/models/Repository";
 import type { PatchFile } from "../tools/git-patch/domain/PatchFile";

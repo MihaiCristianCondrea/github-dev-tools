@@ -83,7 +83,8 @@ button:disabled { cursor: not-allowed; opacity: .72; }
 .nav-item md-icon { --md-icon-font: "Material Symbols Outlined"; font-variation-settings: "FILL" 0, "wght" 400, "GRAD" 0, "opsz" 24; }
 .nav-item.active md-icon { --md-icon-font: "Material Symbols Rounded"; font-variation-settings: "FILL" 1, "wght" 400, "GRAD" 0, "opsz" 24; }
 
-.app-shell { min-height: 100vh; background: var(--bg-color); color: var(--text-color); }
+particle-network-background { position: fixed; inset: 0; z-index: 0; pointer-events: none; }
+.app-shell { position: relative; z-index: 1; min-height: 100vh; color: var(--text-color); }
 .drawer-layer { position: fixed; inset: 0; z-index: 1000; pointer-events: none; }
 .drawer-layer.open { pointer-events: auto; }
 .drawer { display: block; inline-size: 100%; block-size: 100%; --md-navigation-drawer-modal-container-color: var(--surface-color); --md-navigation-drawer-modal-scrim-color: var(--text-color); --md-navigation-drawer-modal-scrim-opacity: .24; --md-sys-color-surface-container-low: var(--surface-color); --md-sys-color-surface-container: var(--surface-color); --md-sys-color-on-surface: var(--text-color); --md-sys-color-outline: var(--outline); }
