@@ -1,7 +1,7 @@
-import { GetPromotedAppsUseCase } from "../domain/usecases/GetPromotedAppsUseCase";
-import FavoriteRepositoryStore from "./local/FavoriteRepositoryStore";
-import GitHubRepositoryClient from "./remote/GitHubRepositoryClient";
-import { RemoteAppsRepository } from "./repositories/RemoteAppsRepository";
+import { GetPromotedAppsUseCase } from "../features/app-showcase/domain/usecases/GetPromotedAppsUseCase";
+import FavoriteRepositoryStore from "../features/favorites/data/local/FavoriteRepositoryStore";
+import GitHubRepositoryClient from "../features/repo-mapper/data/remote/GitHubRepositoryClient";
+import { RemoteAppsRepository } from "../features/app-showcase/data/repositories/RemoteAppsRepository";
 
 export default class DataServices {
 	static github = new GitHubRepositoryClient();

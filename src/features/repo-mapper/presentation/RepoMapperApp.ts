@@ -1,14 +1,14 @@
-import DataServices from "../../../data/DataServices";
-import type { AppShowcaseSection } from "../AppShowcaseSection/AppShowcaseSection";
-import "../AppShowcaseSection/AppShowcaseSection";
-import type { FavoriteRepository, RepositoryRef } from "../../../domain/models/Repository";
-import { repositoryUrl } from "../../../domain/models/Repository";
-import type { PatchFile } from "../../../domain/models/PatchFile";
-import type { ProcessedRelease, ReleaseAsset, ReleaseStats } from "../../../domain/models/ReleaseStats";
-import type { RepositoryMapFormat, RepositoryTreeItem } from "../../../domain/models/RepositoryTree";
-import GitHubUrlParser from "../../../domain/services/GitHubUrlParser";
-import RepositoryMapBuilder from "../../../domain/services/RepositoryMapBuilder";
-import WebComponent from "../../webcomponents/WebComponent";
+import DataServices from "../../../app/DataServices";
+import type { AppShowcaseSection } from "../../app-showcase/presentation/AppShowcaseSection";
+import "../../app-showcase/presentation/AppShowcaseSection";
+import type { FavoriteRepository, RepositoryRef } from "../domain/models/Repository";
+import { repositoryUrl } from "../domain/models/Repository";
+import type { PatchFile } from "../domain/models/PatchFile";
+import type { ProcessedRelease, ReleaseAsset, ReleaseStats } from "../domain/models/ReleaseStats";
+import type { RepositoryMapFormat, RepositoryTreeItem } from "../domain/models/RepositoryTree";
+import GitHubUrlParser from "../domain/services/GitHubUrlParser";
+import RepositoryMapBuilder from "../domain/services/RepositoryMapBuilder";
+import WebComponent from "../../../core/webcomponents/WebComponent";
 import css from "./RepoMapperApp.css?raw";
 import html from "./RepoMapperApp.html?raw";
 

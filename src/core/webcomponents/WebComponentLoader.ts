@@ -13,7 +13,7 @@ export default class WebComponentLoader {
 	private static componentDefinitions: ComponentDefinition<WebComponent>[] = [];
 
 	public static async loadAll(): Promise<void> {
-		const modules = (import.meta as ImportMetaWithGlob).glob("../components/**/*.ts");
+		const modules = (import.meta as ImportMetaWithGlob).glob("../../features/**/presentation/*.ts");
 		const modulePaths = Object.keys(modules);
 		for (const modulePath of modulePaths) {
 			const module = await modules[modulePath]() as ComponentModule;
