@@ -1,4 +1,4 @@
-import type { FavoriteRepository, RepositoryRef } from "../../../repo-mapper/domain/models/Repository";
+import type { FavoriteRepository, RepositoryRef } from "../../../github-tools/core/models/Repository";
 
 const STORAGE_KEY = "repomapper_favorites";
 

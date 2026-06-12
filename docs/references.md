@@ -24,4 +24,4 @@ The real application source lives in `src/`.
 
 Material Web must be consumed through npm imports from `@material/web`, not from `references/`.
 
-Use the reference Material Web source only to understand component names, attributes, slots, events, and styling patterns. After researching a component in `references/material-web-components`, register the production custom element from the matching `@material/web` package path in `src/presentation/material/MaterialElements.ts`.
+Use the reference Material Web source only to understand component names, attributes, slots, events, and styling patterns. After researching a component in `references/material-web-components`, register the production custom element from the matching `@material/web` package path in `src/core/material/MaterialElements.ts`.

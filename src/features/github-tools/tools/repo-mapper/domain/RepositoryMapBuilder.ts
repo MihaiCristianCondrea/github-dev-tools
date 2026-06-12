@@ -1,4 +1,4 @@
-import type { RepositoryMapFormat, RepositoryMapResult, RepositoryTreeItem } from "../models/RepositoryTree";
+import type { RepositoryMapFormat, RepositoryMapResult, RepositoryTreeItem } from "./RepositoryTree";
 
 interface DirectoryNode {
 	[key: string]: DirectoryNode | null;

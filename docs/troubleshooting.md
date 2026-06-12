@@ -1,8 +1,8 @@
 # Troubleshooting
 
-## `Failed to start RepoMapper`
+## `Failed to start GitHub Tools`
 
-**Meaning:** the startup sequence in `src/main.ts` threw before `<repo-mapper-app>` was mounted.
+**Meaning:** the startup sequence in `src/main.ts` threw before `<github-tools-app>` was mounted.
 
 **First checks:**
 
@@ -16,7 +16,7 @@
 
 **Likely cause in this project:** Material Web modules were previously loaded through multiple remote CDN `+esm` URLs. Shared Material internals could be evaluated more than once, causing duplicate custom-element registration.
 
-**Fix:** keep Material Web as bundled npm imports in `src/presentation/material/MaterialElements.ts`; do not dynamically import Material from runtime CDN URLs.
+**Fix:** keep Material Web as bundled npm imports in `src/core/material/MaterialElements.ts`; do not dynamically import Material from runtime CDN URLs.
 
 ## `this constructor has already been used with this registry`
 

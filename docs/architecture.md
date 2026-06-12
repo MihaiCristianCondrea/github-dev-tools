@@ -4,49 +4,46 @@
 
 ## Runtime boot path
 
-1. `src/main.ts` imports the app shell, imports bundled Material Web registrations, renders a loading state, initializes shared data/state services, and mounts `<repo-mapper-app>` into `#app`.
-2. `src/presentation/material/MaterialElements.ts` is the only project file that imports Material Web element definitions. Importing that module registers the `md-*` custom elements through the Vite bundle.
-3. `src/presentation/components/RepoMapperApp/RepoMapperApp.ts` owns top-level navigation and coordinates the visible tools.
-4. Feature actions call domain services and data adapters, then render results back into component templates.
+1. `src/main.ts` starts the app through `src/app/App.ts`.
+2. `src/app/App.ts` imports the GitHub Tools app shell, imports bundled Material Web registrations, renders a loading state, initializes shared data/state services, and mounts `<github-tools-app>` into `#app`.
+3. `src/core/material/MaterialElements.ts` is the only project file that imports Material Web element definitions. Importing that module registers the `md-*` custom elements through the Vite bundle.
+4. `src/features/github-tools/presentation/GitHubToolsApp.ts` owns top-level navigation, the drawer, shared layout, favorites wiring, and tool switching.
+5. Tool actions call GitHub Tools core services plus tool-specific domain helpers, then render results back into the app shell template.
 
 ## Source layers
 
-### `src/presentation`
-
-Presentation code renders markup, subscribes to DOM events, and translates user intent into domain/data calls.
-
-- `components/` contains app-facing UI components such as `RepoMapperApp` and `AppShowcaseSection`.
-- `material/` contains the bundled Material Web registration boundary.
-- `webcomponents/` contains reusable native custom-element helpers and loading utilities.
-
-The top-level `RepoMapperApp` is currently the app shell for navigation, favorites, mapper output, release statistics, and patch extraction. Future UI refactors should move feature-specific rendering into smaller panels such as `MapperPanel`, `ReleaseStatsPanel`, `PatchPanel`, and `FavoritesPanel` while keeping `RepoMapperApp` as the navigation shell.
-
-### `src/domain`
-
-Domain code contains business rules and typed concepts that are independent of the browser DOM:
-
-- `GitHubUrlParser` converts repository and commit URLs into typed references.
-- `RepositoryMapBuilder` converts repository tree entries into ASCII trees or path lists and computes file/folder counts.
-- Domain models describe repositories, release stats, patch files, and promoted app items.
-
-### `src/data`
-
-Data code talks to external systems or persistence APIs and is grouped by responsibility:
-
-- `dto/` contains remote API response shapes.
-- `mappers/` converts remote DTOs into domain models.
-- `local/` persists favorites in `localStorage`.
-- `remote/` calls GitHub API and raw patch endpoints.
-- `repositories/` implements domain repository interfaces.
-- `DataServices` wires the data adapters and use cases used by the app shell.
-
 ### `src/core`
 
-Core code provides reusable non-presentation foundations:
+Core code provides reusable app-wide foundations that are not specific to GitHub tools:
 
 - `events/` contains observable/event utilities.
+- `material/` contains the bundled Material Web registration boundary.
 - `state/` contains global state, state wrappers, and the base model helper.
 - `typings/` contains project-level TypeScript declarations.
+- `webcomponents/` contains reusable native custom-element helpers and loading utilities.
+
+### `src/features/github-tools`
+
+The GitHub Tools feature group contains the GitHub-focused app shell, shared GitHub logic, and the current tool domains.
+
+- `presentation/GitHubToolsApp.ts`, `.html`, and `.css` define the shell/coordinator for navigation, drawer behavior, shared layout, and current tool views.
+- `core/models/` contains shared GitHub models such as repository, commit, and favorite repository references.
+- `core/services/` contains shared GitHub parsing and API-client logic used by multiple tools.
+- `core/components/` is reserved for shared GitHub Tools UI components when views are split out of the app shell.
+- `tools/repo-mapper/` contains Repo Mapper-specific domain code, including repository-tree models and map formatting.
+- `tools/release-stats/` contains Release Stats-specific domain models.
+- `tools/git-patch/` contains Git Patch-specific domain models.
+
+This first-pass structure intentionally keeps the existing app behavior centralized in `GitHubToolsApp` while moving obvious shared and tool-specific files to their future homes. Future UI refactors should move feature-specific rendering into smaller panels such as `MapperPanel`, `ReleaseStatsPanel`, `PatchPanel`, and `FavoritesPanel` without turning the feature group into a mini-framework.
+
+### Other features
+
+- `src/features/app-showcase/` owns the promoted apps section shown on the home view.
+- `src/features/favorites/` remains a cross-feature persistence package. It currently stores GitHub repository favorites in `localStorage` and imports shared repository types from `src/features/github-tools/core/models/Repository.ts`.
+
+### `src/app`
+
+`src/app/DataServices.ts` wires the data adapters and use cases used by the app shell. It is the integration point for the GitHub API client, favorites persistence, and promoted apps.
 
 ## Product flows
 
@@ -60,4 +57,4 @@ Favorites are shared across Repo Mapper and Release Stats, saved locally, and sh
 
 ## Custom-element registration rules
 
-Custom elements are global to the page. A tag name can only be registered once, and the same constructor cannot be reused for multiple tag names. For that reason, project code must not define fake `md-*` elements as a production fallback and must not load the same Material Web element graph from multiple runtime CDNs. Material registrations belong in `src/presentation/material/MaterialElements.ts` and should stay as bundled imports.
+Custom elements are global to the page. A tag name can only be registered once, and the same constructor cannot be reused for multiple tag names. For that reason, project code must not define fake `md-*` elements as a production fallback and must not load the same Material Web element graph from multiple runtime CDNs. Material registrations belong in `src/core/material/MaterialElements.ts` and should stay as bundled imports.
