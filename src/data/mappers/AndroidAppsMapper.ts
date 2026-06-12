@@ -1,5 +1,5 @@
-import type { AppItem } from "../domain/models/AppItem";
-import type { AndroidAppApiDto, AndroidAppCategoryDto, AndroidAppsApiDto } from "./AndroidAppsApiDto";
+import type { AppItem } from "../../domain/models/AppItem";
+import type { AndroidAppApiDto, AndroidAppCategoryDto, AndroidAppsApiDto } from "../dto/AndroidAppsApiDto";
 
 export class AndroidAppsMapper {
 	toDomain(response: AndroidAppsApiDto): AppItem[] {

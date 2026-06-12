@@ -1,9 +1,9 @@
 import { GetPromotedAppsUseCase } from "../domain/usecases/GetPromotedAppsUseCase";
-import FavoriteRepositoryStore from "./FavoriteRepositoryStore";
-import GitHubRepositoryClient from "./GitHubRepositoryClient";
-import { RemoteAppsRepository } from "./RemoteAppsRepository";
+import FavoriteRepositoryStore from "./local/FavoriteRepositoryStore";
+import GitHubRepositoryClient from "./remote/GitHubRepositoryClient";
+import { RemoteAppsRepository } from "./repositories/RemoteAppsRepository";
 
-export default class DataManager {
+export default class DataServices {
 	static github = new GitHubRepositoryClient();
 	static favorites = new FavoriteRepositoryStore();
 	static promotedApps = new GetPromotedAppsUseCase(new RemoteAppsRepository());

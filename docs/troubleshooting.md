@@ -16,7 +16,7 @@
 
 **Likely cause in this project:** Material Web modules were previously loaded through multiple remote CDN `+esm` URLs. Shared Material internals could be evaluated more than once, causing duplicate custom-element registration.
 
-**Fix:** keep Material Web as bundled npm imports in `src/lib/components/MaterialElements.ts`; do not dynamically import Material from runtime CDN URLs.
+**Fix:** keep Material Web as bundled npm imports in `src/presentation/material/MaterialElements.ts`; do not dynamically import Material from runtime CDN URLs.
 
 ## `this constructor has already been used with this registry`
 

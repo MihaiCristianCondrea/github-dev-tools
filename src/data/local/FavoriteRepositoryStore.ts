@@ -1,4 +1,4 @@
-import type { FavoriteRepository, RepositoryRef } from "../domain/models/Repository";
+import type { FavoriteRepository, RepositoryRef } from "../../domain/models/Repository";
 
 const STORAGE_KEY = "repomapper_favorites";
 

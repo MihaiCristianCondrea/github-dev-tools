@@ -1,19 +1,25 @@
 # Architecture
 
-`github-dev-tools` is a Vite-built GitHub Pages application implemented as native web components. The app is intentionally small, but it still follows a layered structure so UI code, GitHub API access, and domain formatting rules do not collapse into one file.
+`github-dev-tools` is a Vite-built GitHub Pages application implemented as native web components. The app follows a layered structure so UI code, GitHub API access, domain formatting rules, and reusable infrastructure stay separated.
 
 ## Runtime boot path
 
 1. `src/main.ts` imports the app shell, imports bundled Material Web registrations, renders a loading state, initializes shared data/state services, and mounts `<repo-mapper-app>` into `#app`.
-2. `src/lib/components/MaterialElements.ts` is the only project file that imports Material Web element definitions. Importing that module registers the `md-*` custom elements through the Vite bundle.
-3. `src/components/RepoMapperApp/RepoMapperApp.ts` owns top-level navigation and coordinates the visible tools.
+2. `src/presentation/material/MaterialElements.ts` is the only project file that imports Material Web element definitions. Importing that module registers the `md-*` custom elements through the Vite bundle.
+3. `src/presentation/components/RepoMapperApp/RepoMapperApp.ts` owns top-level navigation and coordinates the visible tools.
 4. Feature actions call domain services and data adapters, then render results back into component templates.
 
 ## Source layers
 
-### `src/components`
+### `src/presentation`
 
-Presentation components render markup, subscribe to DOM events, and translate user intent into domain/data calls. The top-level `RepoMapperApp` is currently the app shell for navigation, favorites, mapper output, release statistics, and patch extraction. Future UI refactors should move feature-specific rendering into smaller panels such as `MapperPanel`, `ReleaseStatsPanel`, `PatchPanel`, and `FavoritesPanel` while keeping `RepoMapperApp` as the navigation shell.
+Presentation code renders markup, subscribes to DOM events, and translates user intent into domain/data calls.
+
+- `components/` contains app-facing UI components such as `RepoMapperApp` and `AppShowcaseSection`.
+- `material/` contains the bundled Material Web registration boundary.
+- `webcomponents/` contains reusable native custom-element helpers and loading utilities.
+
+The top-level `RepoMapperApp` is currently the app shell for navigation, favorites, mapper output, release statistics, and patch extraction. Future UI refactors should move feature-specific rendering into smaller panels such as `MapperPanel`, `ReleaseStatsPanel`, `PatchPanel`, and `FavoritesPanel` while keeping `RepoMapperApp` as the navigation shell.
 
 ### `src/domain`
 
@@ -25,16 +31,22 @@ Domain code contains business rules and typed concepts that are independent of t
 
 ### `src/data`
 
-Data code talks to external systems or persistence APIs:
+Data code talks to external systems or persistence APIs and is grouped by responsibility:
 
-- `GitHubRepositoryClient` calls GitHub API and raw patch endpoints.
-- `FavoriteRepositoryStore` persists favorites in `localStorage`.
-- `RemoteAppsRepository` loads promoted app data for the showcase feature.
-- `DataManager` wires repositories and use cases for the app shell.
+- `dto/` contains remote API response shapes.
+- `mappers/` converts remote DTOs into domain models.
+- `local/` persists favorites in `localStorage`.
+- `remote/` calls GitHub API and raw patch endpoints.
+- `repositories/` implements domain repository interfaces.
+- `DataServices` wires the data adapters and use cases used by the app shell.
 
-### `src/lib`
+### `src/core`
 
-Infrastructure code provides reusable foundations: web-component helpers, event/state utilities, model types, and project-level component registration.
+Core code provides reusable non-presentation foundations:
+
+- `events/` contains observable/event utilities.
+- `state/` contains global state, state wrappers, and the base model helper.
+- `typings/` contains project-level TypeScript declarations.
 
 ## Product flows
 
@@ -48,4 +60,4 @@ Favorites are shared across Repo Mapper and Release Stats, saved locally, and sh
 
 ## Custom-element registration rules
 
-Custom elements are global to the page. A tag name can only be registered once, and the same constructor cannot be reused for multiple tag names. For that reason, project code must not define fake `md-*` elements as a production fallback and must not load the same Material Web element graph from multiple runtime CDNs. Material registrations belong in `src/lib/components/MaterialElements.ts` and should stay as bundled imports.
+Custom elements are global to the page. A tag name can only be registered once, and the same constructor cannot be reused for multiple tag names. For that reason, project code must not define fake `md-*` elements as a production fallback and must not load the same Material Web element graph from multiple runtime CDNs. Material registrations belong in `src/presentation/material/MaterialElements.ts` and should stay as bundled imports.

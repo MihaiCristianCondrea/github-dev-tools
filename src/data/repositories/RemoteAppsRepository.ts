@@ -1,7 +1,7 @@
-import type { AppItem } from "../domain/models/AppItem";
-import type { AppsRepository } from "../domain/repositories/AppsRepository";
-import type { AndroidAppsApiDto } from "./AndroidAppsApiDto";
-import { AndroidAppsMapper } from "./AndroidAppsMapper";
+import type { AppItem } from "../../domain/models/AppItem";
+import type { AppsRepository } from "../../domain/repositories/AppsRepository";
+import type { AndroidAppsApiDto } from "../dto/AndroidAppsApiDto";
+import { AndroidAppsMapper } from "../mappers/AndroidAppsMapper";
 
 const appsEndpoint = "https://mihaicristiancondrea.github.io/com.d4rk.apis/api/app_toolkit/v2/release/en/home/api_android_apps.json";
 

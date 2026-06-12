@@ -1,14 +1,14 @@
-import DataManager from "../../data/DataManager";
+import DataServices from "../../../data/DataServices";
 import type { AppShowcaseSection } from "../AppShowcaseSection/AppShowcaseSection";
 import "../AppShowcaseSection/AppShowcaseSection";
-import type { FavoriteRepository, RepositoryRef } from "../../domain/models/Repository";
-import { repositoryUrl } from "../../domain/models/Repository";
-import type { PatchFile } from "../../domain/models/PatchFile";
-import type { ProcessedRelease, ReleaseAsset, ReleaseStats } from "../../domain/models/ReleaseStats";
-import type { RepositoryMapFormat, RepositoryTreeItem } from "../../domain/models/RepositoryTree";
-import GitHubUrlParser from "../../domain/services/GitHubUrlParser";
-import RepositoryMapBuilder from "../../domain/services/RepositoryMapBuilder";
-import WebComponent from "../../lib/components/WebComponent";
+import type { FavoriteRepository, RepositoryRef } from "../../../domain/models/Repository";
+import { repositoryUrl } from "../../../domain/models/Repository";
+import type { PatchFile } from "../../../domain/models/PatchFile";
+import type { ProcessedRelease, ReleaseAsset, ReleaseStats } from "../../../domain/models/ReleaseStats";
+import type { RepositoryMapFormat, RepositoryTreeItem } from "../../../domain/models/RepositoryTree";
+import GitHubUrlParser from "../../../domain/services/GitHubUrlParser";
+import RepositoryMapBuilder from "../../../domain/services/RepositoryMapBuilder";
+import WebComponent from "../../webcomponents/WebComponent";
 import css from "./RepoMapperApp.css?raw";
 import html from "./RepoMapperApp.html?raw";
 
@@ -82,7 +82,7 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private configureAppShowcase(): void {
-		this.select<AppShowcaseSection>("#app-showcase")?.configure(DataManager.promotedApps);
+		this.select<AppShowcaseSection>("#app-showcase")?.configure(DataServices.promotedApps);
 	}
 
 	private bindSubmitButtonFallbacks(): void {
@@ -182,11 +182,11 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private loadFavorites(): void {
-		this.state.favorites = DataManager.favorites.load();
+		this.state.favorites = DataServices.favorites.load();
 	}
 
 	private saveFavorites(): void {
-		DataManager.favorites.save(this.state.favorites);
+		DataServices.favorites.save(this.state.favorites);
 		this.renderFavorites();
 		this.renderHomeFavorites();
 		if (this.state.currentView === "mapper") this.handleUrlInput("mapper");
@@ -194,14 +194,14 @@ export default class RepoMapperApp extends WebComponent {
 	}
 
 	private isFavorite(repository: RepositoryRef): boolean {
-		return DataManager.favorites.isFavorite(this.state.favorites, repository);
+		return DataServices.favorites.isFavorite(this.state.favorites, repository);
 	}
 
 	private toggleFavoriteCurrent(view: "mapper" | "releases"): void {
 		const parsed = view === "mapper" ? this.state.mapper.parsedRepo : this.state.releases.parsedRepo;
 		if (!parsed) return;
 
-		this.state.favorites = DataManager.favorites.toggle(this.state.favorites, parsed);
+		this.state.favorites = DataServices.favorites.toggle(this.state.favorites, parsed);
 		this.saveFavorites();
 	}
 
@@ -352,7 +352,7 @@ export default class RepoMapperApp extends WebComponent {
 		}
 
 		try {
-			const tree = await DataManager.github.getRepositoryTree(parsed, token);
+			const tree = await DataServices.github.getRepositoryTree(parsed, token);
 			this.state.mapper.rawPaths = tree.items;
 			this.renderMapperOutput();
 			result?.classList.remove("hidden");
@@ -389,7 +389,7 @@ export default class RepoMapperApp extends WebComponent {
 		}
 
 		try {
-			this.state.releases.data = await DataManager.github.getReleaseStats(parsed, token);
+			this.state.releases.data = await DataServices.github.getReleaseStats(parsed, token);
 			this.state.releases.selectedIndex = 0;
 			this.renderReleases();
 			result?.classList.remove("hidden");
@@ -475,7 +475,7 @@ export default class RepoMapperApp extends WebComponent {
 		}
 
 		try {
-			this.state.patch = await DataManager.github.getCommitPatch(parsed);
+			this.state.patch = await DataServices.github.getCommitPatch(parsed);
 			this.select("#patch-code")!.textContent = this.state.patch.content;
 			result?.classList.remove("hidden");
 		} catch (error) {
