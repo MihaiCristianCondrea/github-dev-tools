@@ -23,3 +23,13 @@ Keep Material Web custom element registration centralized in `src/core/material/
 ## Material Web styling
 
 Do not override Material Web component structure, sizing, shape, padding, borders, typography, cursor, ripple, icon placement, disabled behavior, or animation in application CSS. Prefer component attributes and slots, and limit CSS customization on Material Web components to supported color/design tokens unless a documented accessibility or layout exception is required.
+
+## GitHub Tools feature structure
+
+The GitHub developer tools live under `src/features/github-tools/`:
+
+- `presentation/GitHubToolsApp.ts/html/css` is the shell for navigation, drawer state, shared layout, favorites wiring, and current tool switching.
+- `core/models/`, `core/services/`, and `core/components/` hold GitHub Tools code shared by multiple tools.
+- `tools/repo-mapper/`, `tools/release-stats/`, and `tools/git-patch/` hold tool-specific data, domain, and presentation code.
+
+When adding GitHub-focused functionality, prefer placing shared GitHub parsing/client/model code in `github-tools/core` and tool-only behavior in the matching `github-tools/tools/<tool-name>` package. Keep truly app-wide utilities in `src/core`, and keep favorites in `src/features/favorites` unless they become private to GitHub Tools.

@@ -1,7 +1,7 @@
-import type { CommitRef, RepositoryRef } from "../../domain/models/Repository";
-import type { PatchFile } from "../../domain/models/PatchFile";
-import type { ReleaseStats } from "../../domain/models/ReleaseStats";
-import type { RepositoryTree } from "../../domain/models/RepositoryTree";
+import type { CommitRef, RepositoryRef } from "../models/Repository";
+import type { PatchFile } from "../../tools/git-patch/domain/PatchFile";
+import type { ReleaseStats } from "../../tools/release-stats/domain/ReleaseStats";
+import type { RepositoryTree } from "../../tools/repo-mapper/domain/RepositoryTree";
 
 type GithubRepoResponse = {
 	default_branch: string;

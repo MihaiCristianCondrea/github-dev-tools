@@ -4,7 +4,7 @@ This project uses Material Web for buttons, icon buttons, icons, outlined text f
 
 ## Import contract
 
-Material's quick-start documentation distinguishes CDN use for prototyping from the install/build path for production, and notes that Material Web uses bare module specifiers that need a build tool to resolve them. In this app, `src/presentation/material/MaterialElements.ts` is the single import boundary for Material element definitions.
+Material's quick-start documentation distinguishes CDN use for prototyping from the install/build path for production, and notes that Material Web uses bare module specifiers that need a build tool to resolve them. In this app, `src/core/material/MaterialElements.ts` is the single import boundary for Material element definitions.
 
 Approved imports:
 
