@@ -21,10 +21,15 @@ const CONNECTION_DISTANCE_SQUARED = CONNECTION_DISTANCE * CONNECTION_DISTANCE;
 const PARTICLE_RADIUS_MIN = 1.6;
 const PARTICLE_RADIUS_MAX = 2.7;
 const MOTION_SPEED = 0.26;
-const POINTER_RADIUS = 150;
-const POINTER_RADIUS_SQUARED = POINTER_RADIUS * POINTER_RADIUS;
-const POINTER_REPEL_STRENGTH = 0.34;
-const POINTER_LINE_BOOST = 0.07;
+const POINTER_REPEL_RADIUS = 56;
+const POINTER_ATTRACT_RADIUS = 180;
+const POINTER_REPEL_RADIUS_SQUARED = POINTER_REPEL_RADIUS * POINTER_REPEL_RADIUS;
+const POINTER_ATTRACT_RADIUS_SQUARED = POINTER_ATTRACT_RADIUS * POINTER_ATTRACT_RADIUS;
+const POINTER_ATTRACT_BAND_SQUARED = POINTER_ATTRACT_RADIUS_SQUARED - POINTER_REPEL_RADIUS_SQUARED;
+const POINTER_REPEL_STRENGTH = 0.42;
+const POINTER_ATTRACT_STRENGTH = 0.055;
+const POINTER_INFLUENCE_DAMPING = 0.82;
+const POINTER_LINE_BOOST = 0.045;
 
 const componentStyles = `
 	:host {
@@ -200,12 +205,25 @@ class ParticleNetworkBackground extends HTMLElement {
 		const dx = particle.x - this.pointer.x;
 		const dy = particle.y - this.pointer.y;
 		const distanceSquared = dx * dx + dy * dy;
-		if (distanceSquared > POINTER_RADIUS_SQUARED || distanceSquared === 0) return;
+		if (distanceSquared >= POINTER_ATTRACT_RADIUS_SQUARED) return;
 
 		const distance = Math.sqrt(distanceSquared);
-		const influence = (1 - distanceSquared / POINTER_RADIUS_SQUARED) * POINTER_REPEL_STRENGTH;
-		particle.x += (dx / distance) * influence;
-		particle.y += (dy / distance) * influence;
+		const directionX = distance === 0 ? 1 : dx / distance;
+		const directionY = distance === 0 ? 0 : dy / distance;
+
+		if (distanceSquared < POINTER_REPEL_RADIUS_SQUARED) {
+			const proximity = 1 - distanceSquared / POINTER_REPEL_RADIUS_SQUARED;
+			const influence = proximity * proximity * POINTER_REPEL_STRENGTH * POINTER_INFLUENCE_DAMPING;
+			particle.x += directionX * influence;
+			particle.y += directionY * influence;
+			return;
+		}
+
+		const bandProgress = (distanceSquared - POINTER_REPEL_RADIUS_SQUARED) / POINTER_ATTRACT_BAND_SQUARED;
+		const bandFade = Math.sin(bandProgress * Math.PI);
+		const influence = bandFade * POINTER_ATTRACT_STRENGTH * POINTER_INFLUENCE_DAMPING;
+		particle.x -= directionX * influence;
+		particle.y -= directionY * influence;
 	}
 
 	private draw(): void {
@@ -256,9 +274,9 @@ class ParticleNetworkBackground extends HTMLElement {
 		const firstDistanceSquared = this.getPointerDistanceSquared(first);
 		const secondDistanceSquared = this.getPointerDistanceSquared(second);
 		const nearestDistanceSquared = Math.min(firstDistanceSquared, secondDistanceSquared);
-		if (nearestDistanceSquared > POINTER_RADIUS_SQUARED) return 0;
+		if (nearestDistanceSquared > POINTER_ATTRACT_RADIUS_SQUARED) return 0;
 
-		return POINTER_LINE_BOOST * (1 - nearestDistanceSquared / POINTER_RADIUS_SQUARED);
+		return POINTER_LINE_BOOST * (1 - nearestDistanceSquared / POINTER_ATTRACT_RADIUS_SQUARED);
 	}
 
 	private getPointerDistanceSquared(particle: Particle): number {
