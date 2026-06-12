@@ -1,4 +1,6 @@
 import DataManager from "../../data/DataManager";
+import type { AppShowcaseSection } from "../AppShowcaseSection/AppShowcaseSection";
+import "../AppShowcaseSection/AppShowcaseSection";
 import type { FavoriteRepository, RepositoryRef } from "../../domain/models/Repository";
 import { repositoryUrl } from "../../domain/models/Repository";
 import type { PatchFile } from "../../domain/models/PatchFile";
@@ -72,9 +74,31 @@ export default class RepoMapperApp extends WebComponent {
 		this.bindFavorites();
 		this.bindRepositoryMapFormatControls();
 		this.bindPatchActions();
+		this.configureAppShowcase();
+		this.bindSubmitButtonFallbacks();
 		this.renderFavorites();
 		this.renderHomeFavorites();
 		this.navigateTo("home", undefined, false);
+	}
+
+	private configureAppShowcase(): void {
+		this.select<AppShowcaseSection>("#app-showcase")?.configure(DataManager.promotedApps);
+	}
+
+	private bindSubmitButtonFallbacks(): void {
+		const bindings: Array<[string, string]> = [
+			["#mapper-submit", "#mapper-form"],
+			["#releases-submit", "#releases-form"],
+			["#patch-submit", "#patch-form"],
+		];
+
+		bindings.forEach(([buttonSelector, formSelector]) => {
+			this.select(buttonSelector)?.addEventListener("click", (event) => {
+				const button = event.currentTarget as HTMLElement;
+				if (button.hasAttribute("disabled")) return;
+				this.select<HTMLFormElement>(formSelector)?.requestSubmit();
+			});
+		});
 	}
 
 	private bindNavigation(): void {
