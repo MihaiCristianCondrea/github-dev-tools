@@ -1,3 +1,16 @@
+/**
+ * Decorative animated particle network used as a non-interactive page background.
+ *
+ * The component owns its canvas inside shadow DOM, tracks theme color changes
+ * through CSS custom properties, and pauses animation when the document is hidden
+ * or when reduced motion is requested.
+ *
+ * CSS variables:
+ * - `--muted-text`: particle and connection color.
+ */
+
+type RGB = { r: number; g: number; b: number };
+
 type Particle = {
 	x: number;
 	y: number;
@@ -10,26 +23,37 @@ type Particle = {
 type PointerState = {
 	x: number;
 	y: number;
+	normalizedX: number;
+	normalizedY: number;
+	worldX: number;
+	worldY: number;
 	active: boolean;
 };
 
-const MAX_PARTICLES = 160;
+// Physics and Connection Settings
+const MAX_DISTANCE = 90;
+const MAX_DISTANCE_SQUARED = MAX_DISTANCE * MAX_DISTANCE;
+const MAX_CONNECTIONS = 6;
+const MOUSE_CONNECTION_DIST = MAX_DISTANCE * 1.4;
+const MOUSE_CONNECTION_DIST_SQUARED = MOUSE_CONNECTION_DIST * MOUSE_CONNECTION_DIST;
+
+const POINTER_REPEL_RADIUS = 48;
+const POINTER_ATTRACT_RADIUS = 140;
+const POINTER_REPEL_FORCE = 0.035;
+const POINTER_ATTRACT_FORCE = 0.008;
+const POINTER_MAX_FORCE = 0.06;
+
+const VELOCITY_DAMPING = 0.992;
+const MAX_PARTICLE_SPEED = 0.7;
+
+// Density & Camera Boundaries
+const PARTICLE_AREA = 18000;
 const MIN_PARTICLES = 70;
-const PARTICLE_AREA = 14000;
-const CONNECTION_DISTANCE = 190;
-const CONNECTION_DISTANCE_SQUARED = CONNECTION_DISTANCE * CONNECTION_DISTANCE;
-const PARTICLE_RADIUS_MIN = 1.6;
-const PARTICLE_RADIUS_MAX = 2.7;
-const MOTION_SPEED = 0.26;
-const POINTER_REPEL_RADIUS = 56;
-const POINTER_ATTRACT_RADIUS = 180;
-const POINTER_REPEL_RADIUS_SQUARED = POINTER_REPEL_RADIUS * POINTER_REPEL_RADIUS;
-const POINTER_ATTRACT_RADIUS_SQUARED = POINTER_ATTRACT_RADIUS * POINTER_ATTRACT_RADIUS;
-const POINTER_ATTRACT_BAND_SQUARED = POINTER_ATTRACT_RADIUS_SQUARED - POINTER_REPEL_RADIUS_SQUARED;
-const POINTER_REPEL_STRENGTH = 0.42;
-const POINTER_ATTRACT_STRENGTH = 0.055;
-const POINTER_INFLUENCE_DAMPING = 0.82;
-const POINTER_LINE_BOOST = 0.045;
+const MAX_PARTICLES = 160;
+const WORLD_MARGIN = 150;
+const CAMERA_PAN_STRENGTH = 45;
+const COLOR_LERP_RATE = 0.08;
+const PARALLAX_SCROLL_STRENGTH = 0.15;
 
 const componentStyles = `
 	:host {
@@ -40,7 +64,6 @@ const componentStyles = `
 		pointer-events: none;
 		overflow: hidden;
 	}
-
 	canvas {
 		display: block;
 		inline-size: 100%;
@@ -52,27 +75,63 @@ const componentStyles = `
 class ParticleNetworkBackground extends HTMLElement {
 	private readonly canvas: HTMLCanvasElement;
 	private readonly context: CanvasRenderingContext2D;
+	private readonly colorParserCanvas: HTMLCanvasElement;
+	private readonly colorParserContext: CanvasRenderingContext2D;
 	private readonly resizeObserver: ResizeObserver;
-	private readonly reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+	private themeObserver: MutationObserver | null = null;
+
 	private animationFrameId: number | null = null;
+	private rectUpdateFrameId: number | null = null;
 	private particles: Particle[] = [];
+	private connectionCounts = new Uint8Array(0);
+
 	private width = 0;
 	private height = 0;
+	private simulatedWidth = 0;
+	private simulatedHeight = 0;
 	private hostLeft = 0;
 	private hostTop = 0;
+	private pixelRatio = 1;
+
 	private visible = document.visibilityState !== "hidden";
+	private readonly reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
 	private reducedMotion = this.reducedMotionQuery.matches;
-	private readonly pointer: PointerState = { x: 0, y: 0, active: false };
+
+	private readonly pointer: PointerState = {
+		x: 0, y: 0, normalizedX: 0, normalizedY: 0, worldX: 0, worldY: 0, active: false
+	};
+
+	// Camera Dynamics
+	private currentZoom = 1.0;
+	private targetScrollY = 0;
+	private currentScrollY = 0;
+	private currentPanX = 0;
+	private currentPanY = 0;
+
+	private lastFrameTime = 0;
+
+	// Smooth Color Blending State
+	private targetMuted: RGB = { r: 150, g: 150, b: 150 };
+	private currentMuted: RGB = { r: 150, g: 150, b: 150 };
 
 	constructor() {
 		super();
 		const shadowRoot = this.attachShadow({ mode: "open" });
 		const style = document.createElement("style");
 		style.textContent = componentStyles;
+
 		this.canvas = document.createElement("canvas");
 		const context = this.canvas.getContext("2d");
-		if (!context) throw new Error("Particle network canvas context is unavailable");
+		if (!context) throw new Error("ParticleNetworkBackground requires a 2D canvas context.");
 		this.context = context;
+
+		this.colorParserCanvas = document.createElement("canvas");
+		this.colorParserCanvas.width = 1;
+		this.colorParserCanvas.height = 1;
+		const parserContext = this.colorParserCanvas.getContext("2d", { willReadFrequently: true });
+		if (!parserContext) throw new Error("ParticleNetworkBackground requires a color parser context.");
+		this.colorParserContext = parserContext;
+
 		this.resizeObserver = new ResizeObserver(() => this.resize());
 		shadowRoot.append(style, this.canvas);
 	}
@@ -80,12 +139,21 @@ class ParticleNetworkBackground extends HTMLElement {
 	connectedCallback(): void {
 		this.visible = document.visibilityState !== "hidden";
 		this.reducedMotion = this.reducedMotionQuery.matches;
+
+		this.themeObserver = new MutationObserver(() => this.extractCssColors());
+		this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme", "style"] });
+		this.themeObserver.observe(this, { attributes: true, attributeFilter: ["class", "style"] });
+
 		this.resizeObserver.observe(this);
 		this.reducedMotionQuery.addEventListener("change", this.handleReducedMotionChange);
 		document.addEventListener("visibilitychange", this.handleVisibilityChange);
 		window.addEventListener("pointermove", this.handlePointerMove, { passive: true });
 		window.addEventListener("pointerleave", this.handlePointerLeave);
-		window.addEventListener("blur", this.handlePointerLeave);
+		window.addEventListener("scroll", this.handleScroll, { passive: true });
+
+		this.extractCssColors(true);
+		this.targetScrollY = window.scrollY;
+		this.currentScrollY = window.scrollY;
 		this.resize();
 		this.updateAnimationState();
 	}
@@ -93,21 +161,53 @@ class ParticleNetworkBackground extends HTMLElement {
 	disconnectedCallback(): void {
 		this.stopAnimation();
 		this.resizeObserver.disconnect();
+		this.themeObserver?.disconnect();
 		this.reducedMotionQuery.removeEventListener("change", this.handleReducedMotionChange);
 		document.removeEventListener("visibilitychange", this.handleVisibilityChange);
 		window.removeEventListener("pointermove", this.handlePointerMove);
 		window.removeEventListener("pointerleave", this.handlePointerLeave);
-		window.removeEventListener("blur", this.handlePointerLeave);
+		window.removeEventListener("scroll", this.handleScroll);
 	}
 
-	private readonly handleReducedMotionChange = (event: MediaQueryListEvent): void => {
-		this.reducedMotion = event.matches;
-		this.updateAnimationState();
-	};
+	private extractCssColors(instant = false): void {
+		const computedStyle = getComputedStyle(this);
+		const rawMuted = computedStyle.getPropertyValue("--muted-text").trim() || "#888888";
+
+		this.targetMuted = this.parseColorToRgb(rawMuted);
+
+		if (instant) {
+			this.currentMuted = { ...this.targetMuted };
+		}
+	}
+
+	private parseColorToRgb(cssColor: string): RGB {
+		this.colorParserContext.clearRect(0, 0, 1, 1);
+		this.colorParserContext.fillStyle = cssColor;
+		this.colorParserContext.fillRect(0, 0, 1, 1);
+		const data = this.colorParserContext.getImageData(0, 0, 1, 1).data;
+		return { r: data[0], g: data[1], b: data[2] };
+	}
 
 	private readonly handleVisibilityChange = (): void => {
 		this.visible = document.visibilityState !== "hidden";
 		this.updateAnimationState();
+	};
+
+	private readonly handleReducedMotionChange = (): void => {
+		this.reducedMotion = this.reducedMotionQuery.matches;
+		this.updateAnimationState();
+	};
+
+	private readonly handleScroll = (): void => {
+		this.targetScrollY = window.scrollY;
+
+		if (this.rectUpdateFrameId !== null) return;
+		this.rectUpdateFrameId = requestAnimationFrame(() => {
+			this.rectUpdateFrameId = null;
+			const rect = this.getBoundingClientRect();
+			this.hostLeft = rect.left;
+			this.hostTop = rect.top;
+		});
 	};
 
 	private readonly handlePointerMove = (event: PointerEvent): void => {
@@ -115,53 +215,86 @@ class ParticleNetworkBackground extends HTMLElement {
 		const y = event.clientY - this.hostTop;
 		this.pointer.x = x;
 		this.pointer.y = y;
+
+		this.pointer.normalizedX = (x / this.width) * 2 - 1;
+		this.pointer.normalizedY = (y / this.height) * 2 - 1;
+
 		this.pointer.active = x >= 0 && x <= this.width && y >= 0 && y <= this.height;
 	};
 
 	private readonly handlePointerLeave = (): void => {
 		this.pointer.active = false;
+		this.pointer.normalizedX = 0;
+		this.pointer.normalizedY = 0;
 	};
+
+	private clamp(n: number, min: number, max: number): number {
+		if (n < min) return min;
+		if (n > max) return max;
+		return n;
+	}
 
 	private resize(): void {
 		const rect = this.getBoundingClientRect();
-		const width = Math.max(0, Math.floor(rect.width));
-		const height = Math.max(0, Math.floor(rect.height));
-		const pixelRatio = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+		const nextPixelRatio = Math.max(1, Math.min(window.devicePixelRatio || 1, 2));
+		const nextWidth = Math.max(0, Math.floor(rect.width));
+		const nextHeight = Math.max(0, Math.floor(rect.height));
 
 		this.hostLeft = rect.left;
 		this.hostTop = rect.top;
-		this.width = width;
-		this.height = height;
-		this.canvas.width = Math.floor(width * pixelRatio);
-		this.canvas.height = Math.floor(height * pixelRatio);
-		this.context.setTransform(pixelRatio, 0, 0, pixelRatio, 0, 0);
-		this.seedParticles();
-		this.draw();
-	}
 
-	private seedParticles(): void {
-		if (this.width === 0 || this.height === 0) {
-			this.particles = [];
+		if (nextWidth === this.width && nextHeight === this.height && nextPixelRatio === this.pixelRatio) {
 			return;
 		}
 
-		const densityCount = Math.floor((this.width * this.height) / PARTICLE_AREA);
-		const particleCount = Math.max(MIN_PARTICLES, Math.min(MAX_PARTICLES, densityCount));
-		this.particles = Array.from({ length: particleCount }, () => this.createParticle());
+		this.width = nextWidth;
+		this.height = nextHeight;
+		this.pixelRatio = nextPixelRatio;
+
+		this.canvas.width = Math.floor(this.width * this.pixelRatio);
+		this.canvas.height = Math.floor(this.height * this.pixelRatio);
+		this.context.setTransform(this.pixelRatio, 0, 0, this.pixelRatio, 0, 0);
+
+		this.updateSimulationBounds();
+		this.syncParticleCount();
+	}
+
+	private updateSimulationBounds(): void {
+		this.simulatedWidth = this.width + (WORLD_MARGIN * 2);
+		const scrollHeight = document.documentElement.scrollHeight || this.height;
+		this.simulatedHeight = this.height + (scrollHeight * PARALLAX_SCROLL_STRENGTH) + (WORLD_MARGIN * 2);
+	}
+
+	private getTargetParticleCount(): number {
+		const rawCount = Math.floor((this.simulatedWidth * this.simulatedHeight) / PARTICLE_AREA);
+		return this.clamp(rawCount, MIN_PARTICLES, MAX_PARTICLES);
+	}
+
+	private syncParticleCount(): void {
+		if (this.width === 0 || this.height === 0) return;
+
+		const targetCount = this.getTargetParticleCount();
+
+		while (this.particles.length < targetCount) {
+			this.particles.push(this.createParticle());
+		}
+
+		if (this.particles.length > targetCount) {
+			this.particles.length = targetCount;
+		}
 	}
 
 	private createParticle(): Particle {
-		const radius = PARTICLE_RADIUS_MIN + Math.random() * (PARTICLE_RADIUS_MAX - PARTICLE_RADIUS_MIN);
-		const radiusRatio = (radius - PARTICLE_RADIUS_MIN) / (PARTICLE_RADIUS_MAX - PARTICLE_RADIUS_MIN);
-		const speedScale = 1 - radiusRatio * 0.38;
+		const angle = Math.random() * Math.PI * 2;
+		const speed = 0.08 + Math.random() * 0.22;
 
 		return {
-			x: Math.random() * this.width,
-			y: Math.random() * this.height,
-			vx: (Math.random() - 0.5) * MOTION_SPEED * speedScale,
-			vy: (Math.random() - 0.5) * MOTION_SPEED * speedScale,
-			radius,
-			alpha: 0.72 + Math.random() * 0.28,
+			x: -WORLD_MARGIN + Math.random() * this.simulatedWidth,
+			y: -WORLD_MARGIN + Math.random() * this.simulatedHeight,
+			vx: Math.cos(angle) * speed,
+			vy: Math.sin(angle) * speed,
+			radius: 1.2 + Math.random() * 0.8,
+			alpha: 0.35 + Math.random() * 0.25
 		};
 	}
 
@@ -171,118 +304,198 @@ class ParticleNetworkBackground extends HTMLElement {
 			this.draw();
 			return;
 		}
-
 		if (this.animationFrameId === null) {
 			this.animationFrameId = requestAnimationFrame(this.tick);
 		}
 	}
 
-	private readonly tick = (): void => {
+	private lerpColors(deltaScale: number): void {
+		const rate = 1 - Math.pow(1 - COLOR_LERP_RATE, deltaScale);
+
+		this.currentMuted.r += (this.targetMuted.r - this.currentMuted.r) * rate;
+		this.currentMuted.g += (this.targetMuted.g - this.currentMuted.g) * rate;
+		this.currentMuted.b += (this.targetMuted.b - this.currentMuted.b) * rate;
+	}
+
+	private readonly tick = (timeMs: number): void => {
 		this.animationFrameId = null;
-		this.stepParticles();
+
+		const deltaMs = this.lastFrameTime === 0 ? 16.67 : timeMs - this.lastFrameTime;
+		this.lastFrameTime = timeMs;
+		const deltaScale = this.clamp(deltaMs / 16.67, 0.5, 2);
+
+		// 3D Camera Dynamics
+		const time = timeMs * 0.001;
+		const wobbleX = Math.sin(time * 0.7) * 15;
+		const wobbleY = Math.sin(time * 0.5) * 20;
+
+		this.currentScrollY += (this.targetScrollY - this.currentScrollY) * 0.08 * deltaScale;
+
+		const targetX = -(this.pointer.normalizedX * CAMERA_PAN_STRENGTH) + wobbleX;
+		const targetY = -(this.pointer.normalizedY * CAMERA_PAN_STRENGTH) + wobbleY - (this.currentScrollY * PARALLAX_SCROLL_STRENGTH);
+
+		this.currentPanX += (targetX - this.currentPanX) * 0.06 * deltaScale;
+		this.currentPanY += (targetY - this.currentPanY) * 0.06 * deltaScale;
+
+		// Inverse Transform Mapping: Convert screen pointer to world coordinates
+		const cx = this.width / 2;
+		const cy = this.height / 2;
+		this.pointer.worldX = (this.pointer.x - cx) / this.currentZoom - this.currentPanX + cx;
+		this.pointer.worldY = (this.pointer.y - cy) / this.currentZoom - this.currentPanY + cy;
+
+		this.lerpColors(deltaScale);
+		this.stepParticles(deltaScale);
 		this.draw();
 		this.updateAnimationState();
 	};
 
-	private stepParticles(): void {
-		this.particles.forEach((particle) => {
-			particle.x += particle.vx;
-			particle.y += particle.vy;
+	private stepParticles(deltaScale: number): void {
+		const maxW = this.simulatedWidth - WORLD_MARGIN;
+		const maxH = this.simulatedHeight - WORLD_MARGIN;
 
-			if (this.pointer.active) {
-				this.applyPointerInfluence(particle);
-			}
+		for (let i = 0; i < this.particles.length; i++) {
+			const p = this.particles[i];
 
-			if (particle.x < 0 || particle.x > this.width) particle.vx *= -1;
-			if (particle.y < 0 || particle.y > this.height) particle.vy *= -1;
+			p.x += p.vx * deltaScale;
+			p.y += p.vy * deltaScale;
 
-			particle.x = Math.max(0, Math.min(this.width, particle.x));
-			particle.y = Math.max(0, Math.min(this.height, particle.y));
-		});
+			// World Boundaries
+			if (p.x < -WORLD_MARGIN) { p.x = -WORLD_MARGIN; p.vx *= -1; }
+			else if (p.x > maxW) { p.x = maxW; p.vx *= -1; }
+
+			if (p.y < -WORLD_MARGIN) { p.y = -WORLD_MARGIN; p.vy *= -1; }
+			else if (p.y > maxH) { p.y = maxH; p.vy *= -1; }
+
+			this.applyPointerForce(p, deltaScale);
+			this.limitParticleVelocity(p);
+		}
 	}
 
-	private applyPointerInfluence(particle: Particle): void {
-		const dx = particle.x - this.pointer.x;
-		const dy = particle.y - this.pointer.y;
+	private applyPointerForce(particle: Particle, deltaScale: number): void {
+		if (!this.pointer.active) return;
+
+		const dx = this.pointer.worldX - particle.x;
+		const dy = this.pointer.worldY - particle.y;
 		const distanceSquared = dx * dx + dy * dy;
-		if (distanceSquared >= POINTER_ATTRACT_RADIUS_SQUARED) return;
+
+		const repelRadiusSquared = POINTER_REPEL_RADIUS * POINTER_REPEL_RADIUS;
+		const attractRadiusSquared = POINTER_ATTRACT_RADIUS * POINTER_ATTRACT_RADIUS;
+
+		if (distanceSquared > attractRadiusSquared || distanceSquared === 0) return;
 
 		const distance = Math.sqrt(distanceSquared);
-		const directionX = distance === 0 ? 1 : dx / distance;
-		const directionY = distance === 0 ? 0 : dy / distance;
+		const nx = dx / distance;
+		const ny = dy / distance;
 
-		if (distanceSquared < POINTER_REPEL_RADIUS_SQUARED) {
-			const proximity = 1 - distanceSquared / POINTER_REPEL_RADIUS_SQUARED;
-			const influence = proximity * proximity * POINTER_REPEL_STRENGTH * POINTER_INFLUENCE_DAMPING;
-			particle.x += directionX * influence;
-			particle.y += directionY * influence;
+		if (distanceSquared < repelRadiusSquared) {
+			const strength = this.clamp((1 - distance / POINTER_REPEL_RADIUS) * POINTER_REPEL_FORCE, 0, POINTER_MAX_FORCE);
+			particle.vx -= nx * strength * deltaScale;
+			particle.vy -= ny * strength * deltaScale;
 			return;
 		}
 
-		const bandProgress = (distanceSquared - POINTER_REPEL_RADIUS_SQUARED) / POINTER_ATTRACT_BAND_SQUARED;
-		const bandFade = Math.sin(bandProgress * Math.PI);
-		const influence = bandFade * POINTER_ATTRACT_STRENGTH * POINTER_INFLUENCE_DAMPING;
-		particle.x -= directionX * influence;
-		particle.y -= directionY * influence;
+		const strength = this.clamp((1 - distance / POINTER_ATTRACT_RADIUS) * POINTER_ATTRACT_FORCE, 0, POINTER_MAX_FORCE);
+		particle.vx += nx * strength * deltaScale;
+		particle.vy += ny * strength * deltaScale;
+	}
+
+	private limitParticleVelocity(particle: Particle): void {
+		particle.vx *= VELOCITY_DAMPING;
+		particle.vy *= VELOCITY_DAMPING;
+
+		const speedSquared = particle.vx * particle.vx + particle.vy * particle.vy;
+		const maxSpeedSquared = MAX_PARTICLE_SPEED * MAX_PARTICLE_SPEED;
+
+		if (speedSquared <= maxSpeedSquared) return;
+
+		const scale = MAX_PARTICLE_SPEED / Math.sqrt(speedSquared);
+		particle.vx *= scale;
+		particle.vy *= scale;
+	}
+
+	private ensureConnectionBuffer(length: number): Uint8Array {
+		if (this.connectionCounts.length < length) {
+			this.connectionCounts = new Uint8Array(length);
+		}
+		this.connectionCounts.fill(0, 0, length);
+		return this.connectionCounts;
 	}
 
 	private draw(): void {
 		const { context } = this;
+
 		context.clearRect(0, 0, this.width, this.height);
 		if (this.width === 0 || this.height === 0) return;
 
-		const computedStyle = getComputedStyle(this);
-		const primaryColor = computedStyle.getPropertyValue("--primary").trim() || "#0a0a0a";
-		const mutedColor = computedStyle.getPropertyValue("--muted-text").trim() || primaryColor;
-		const connectionOpacity = this.reducedMotion ? 0.06 : 0.085;
-		const particleOpacity = this.reducedMotion ? 0.12 : 0.18;
+		const cx = this.width / 2;
+		const cy = this.height / 2;
 
-		context.lineWidth = 1;
-		context.strokeStyle = mutedColor;
-		for (let firstIndex = 0; firstIndex < this.particles.length; firstIndex += 1) {
-			const first = this.particles[firstIndex];
-			for (let secondIndex = firstIndex + 1; secondIndex < this.particles.length; secondIndex += 1) {
-				const second = this.particles[secondIndex];
-				const dx = first.x - second.x;
-				const dy = first.y - second.y;
-				const distanceSquared = dx * dx + dy * dy;
-				if (distanceSquared > CONNECTION_DISTANCE_SQUARED) continue;
+		context.save();
+		context.translate(cx, cy);
+		context.scale(this.currentZoom, this.currentZoom);
+		context.translate(this.currentPanX, this.currentPanY);
+		context.translate(-cx, -cy);
 
-				const distanceFade = 1 - distanceSquared / CONNECTION_DISTANCE_SQUARED;
-				const pointerBoost = this.getLinePointerBoost(first, second);
-				context.globalAlpha = connectionOpacity * distanceFade + pointerBoost;
-				context.beginPath();
-				context.moveTo(first.x, first.y);
-				context.lineTo(second.x, second.y);
-				context.stroke();
+		const length = this.particles.length;
+		const connectionCounts = this.ensureConnectionBuffer(length);
+
+		const { r, g, b } = this.currentMuted;
+		const strokeRgb = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
+		context.strokeStyle = strokeRgb;
+		context.fillStyle = strokeRgb;
+
+		for (let i = 0; i < length; i++) {
+			const p = this.particles[i];
+
+			// 1. Pointer connections
+			if (this.pointer.active) {
+				const dx = this.pointer.worldX - p.x;
+				const dy = this.pointer.worldY - p.y;
+				const distSq = dx * dx + dy * dy;
+
+				if (distSq < MOUSE_CONNECTION_DIST_SQUARED) {
+					const distance = Math.sqrt(distSq);
+					context.globalAlpha = this.clamp(1 - (distance / MOUSE_CONNECTION_DIST), 0.02, 0.3);
+					context.beginPath();
+					context.moveTo(this.pointer.worldX, this.pointer.worldY);
+					context.lineTo(p.x, p.y);
+					context.stroke();
+				}
 			}
+
+			// 2. Particle-to-particle connections
+			for (let j = i + 1; j < length; j++) {
+				if (connectionCounts[i] >= MAX_CONNECTIONS) break;
+				if (connectionCounts[j] >= MAX_CONNECTIONS) continue;
+
+				const target = this.particles[j];
+				const dx = target.x - p.x;
+				const dy = target.y - p.y;
+				const distSq = dx * dx + dy * dy;
+
+				if (distSq < MAX_DISTANCE_SQUARED) {
+					const distance = Math.sqrt(distSq);
+					context.globalAlpha = this.clamp(1 - (distance / MAX_DISTANCE), 0.02, 0.25);
+
+					context.beginPath();
+					context.moveTo(p.x, p.y);
+					context.lineTo(target.x, target.y);
+					context.stroke();
+
+					connectionCounts[i]++;
+					connectionCounts[j]++;
+				}
+			}
+
+			// Draw Dots
+			context.globalAlpha = p.alpha * 0.5;
+			context.beginPath();
+			context.arc(p.x, p.y, p.radius, 0, Math.PI * 2, false);
+			context.fill();
 		}
 
-		context.fillStyle = primaryColor;
-		this.particles.forEach((particle) => {
-			context.globalAlpha = particleOpacity * particle.alpha;
-			context.beginPath();
-			context.arc(particle.x, particle.y, particle.radius, 0, Math.PI * 2);
-			context.fill();
-		});
+		context.restore();
 		context.globalAlpha = 1;
-	}
-
-	private getLinePointerBoost(first: Particle, second: Particle): number {
-		if (!this.pointer.active || this.reducedMotion) return 0;
-
-		const firstDistanceSquared = this.getPointerDistanceSquared(first);
-		const secondDistanceSquared = this.getPointerDistanceSquared(second);
-		const nearestDistanceSquared = Math.min(firstDistanceSquared, secondDistanceSquared);
-		if (nearestDistanceSquared > POINTER_ATTRACT_RADIUS_SQUARED) return 0;
-
-		return POINTER_LINE_BOOST * (1 - nearestDistanceSquared / POINTER_ATTRACT_RADIUS_SQUARED);
-	}
-
-	private getPointerDistanceSquared(particle: Particle): number {
-		const dx = particle.x - this.pointer.x;
-		const dy = particle.y - this.pointer.y;
-		return dx * dx + dy * dy;
 	}
 
 	private stopAnimation(): void {
