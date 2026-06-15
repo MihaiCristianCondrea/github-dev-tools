@@ -47,11 +47,10 @@ const VELOCITY_DAMPING = 0.992;
 const MAX_PARTICLE_SPEED = 0.7;
 
 // Density & Camera Boundaries
-const PARTICLE_AREA = 18000;
-const MIN_PARTICLES = 70;
-const MAX_PARTICLES = 160;
+const PARTICLE_AREA = 12000;
+const MIN_PARTICLES = 100;
+const MAX_PARTICLES = 250;
 const WORLD_MARGIN = 150;
-const CAMERA_PAN_STRENGTH = 45;
 const COLOR_LERP_RATE = 0.08;
 const PARALLAX_SCROLL_STRENGTH = 0.15;
 
@@ -325,14 +324,10 @@ class ParticleNetworkBackground extends HTMLElement {
 		const deltaScale = this.clamp(deltaMs / 16.67, 0.5, 2);
 
 		// 3D Camera Dynamics
-		const time = timeMs * 0.001;
-		const wobbleX = Math.sin(time * 0.7) * 15;
-		const wobbleY = Math.sin(time * 0.5) * 20;
-
 		this.currentScrollY += (this.targetScrollY - this.currentScrollY) * 0.08 * deltaScale;
 
-		const targetX = -(this.pointer.normalizedX * CAMERA_PAN_STRENGTH) + wobbleX;
-		const targetY = -(this.pointer.normalizedY * CAMERA_PAN_STRENGTH) + wobbleY - (this.currentScrollY * PARALLAX_SCROLL_STRENGTH);
+		const targetX = 0;
+		const targetY = -(this.currentScrollY * PARALLAX_SCROLL_STRENGTH);
 
 		this.currentPanX += (targetX - this.currentPanX) * 0.06 * deltaScale;
 		this.currentPanY += (targetY - this.currentPanY) * 0.06 * deltaScale;
