@@ -10,7 +10,7 @@ import type { RepositoryMapFormat, RepositoryTreeItem } from "../tools/repo-mapp
 import GitHubUrlParser from "../core/services/GitHubUrlParser";
 import RepositoryMapBuilder from "../tools/repo-mapper/domain/RepositoryMapBuilder";
 import WebComponent from "../../../core/webcomponents/WebComponent";
-import css from "./GitHubToolsApp.css?raw";
+import css from "./GitHubToolsApp.scss?raw";
 import html from "./GitHubToolsApp.html?raw";
 
 type ViewId = "home" | "favorites" | "mapper" | "releases" | "gitpatch";
