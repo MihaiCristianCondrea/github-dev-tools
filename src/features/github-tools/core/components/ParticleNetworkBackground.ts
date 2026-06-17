@@ -48,7 +48,7 @@ const MAX_PARTICLE_SPEED = 0.7;
 
 // Density & Camera Boundaries
 const PARTICLE_AREA = 12000;
-const MIN_PARTICLES = 112;
+const MIN_PARTICLES = 256;
 const MAX_PARTICLES = 512;
 const WORLD_MARGIN = 150;
 const COLOR_LERP_RATE = 0.08;
