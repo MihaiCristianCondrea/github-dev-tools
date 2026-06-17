@@ -206,7 +206,7 @@ particle-network-background { position: fixed; inset: 0; z-index: 0; pointer-eve
 .primary-button.is-loading { --md-filled-button-disabled-container-color: var(--primary); --md-filled-button-disabled-container-opacity: 1; --md-filled-button-disabled-label-text-color: var(--on-primary); --md-filled-button-disabled-label-text-opacity: 1; --md-circular-progress-active-indicator-color: var(--on-primary); }
 .secondary-button { --md-outlined-button-outline-color: var(--outline); --md-outlined-button-label-text-color: var(--text-color); --md-outlined-button-icon-color: var(--text-color); }
 .copied { --md-outlined-button-label-text-color: var(--text-color); --md-outlined-button-icon-color: var(--text-color); }
-.error-box { margin-top: 20px; display: flex; align-items: flex-start; gap: 12px; padding: 16px; border: 1px solid var(--error-outline); border-radius: 14px; background: var(--error-container); color: var(--on-error-container); font-size: 14px; font-weight: 600; }
+.error-box { margin-top: 20px; display: flex; align-items: center; justify-content: center; gap: 12px; padding: 16px; border: 1px solid var(--error-outline); border-radius: 14px; background: var(--error-container); color: var(--on-error-container); font-size: 14px; font-weight: 600; }
 .result-stack { margin-top: 24px; display: flex; flex-direction: column; gap: 16px; animation: slide-up .35s ease-out; }
 .stat-row { display: flex; flex-wrap: wrap; gap: 12px; }
 .stat-row span, .ready-badge { display: inline-flex; align-items: center; gap: 6px; padding: 7px 12px; border: 1px solid var(--outline); border-radius: 8px; background: var(--surface-variant); color: var(--text-color); font-size: 14px; font-weight: 600; }
