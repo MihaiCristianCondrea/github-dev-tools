@@ -158,9 +158,11 @@ particle-network-background { position: fixed; inset: 0; z-index: 0; pointer-eve
 .favorite-button[selected] { --md-outlined-icon-button-selected-icon-color: var(--text-color); --md-outlined-icon-button-selected-container-color: var(--selected); }
 .settings-row, .result-toolbar, .total-header, .list-heading { display: flex; align-items: center; justify-content: space-between; gap: 16px; flex-wrap: wrap; }
 .text-button { --md-text-button-label-text-color: var(--text-color); --md-text-button-icon-color: var(--text-color); }
+.token-settings-button { overflow: hidden; }
 .token-settings-icon { display: inline-flex; transform-origin: center; transition: transform .22s cubic-bezier(.4, 0, .2, 1); }
 .token-settings-button[aria-expanded="true"] .token-settings-icon { transform: rotate(90deg); }
-.token-settings-label { display: inline-block; transition: opacity .22s cubic-bezier(.2, 0, 0, 1); }
+.token-settings-label { display: inline-block; transform-origin: left center; transition: opacity .14s cubic-bezier(.2, 0, 0, 1), transform .14s cubic-bezier(.2, 0, 0, 1); }
+.token-settings-label.is-changing { opacity: 0; transform: translateY(4px) scale(.96); }
 .segmented { --md-outlined-segmented-button-outline-color: var(--outline); --md-outlined-segmented-button-label-text-color: var(--muted-text); --md-outlined-segmented-button-selected-label-text-color: var(--text-color); --md-outlined-segmented-button-selected-container-color: var(--selected); }
 .form-actions { display: flex; justify-content: flex-end; }
 .primary-button { --md-filled-button-container-color: var(--primary); --md-filled-button-label-text-color: var(--on-primary); --md-filled-button-icon-color: var(--on-primary); }

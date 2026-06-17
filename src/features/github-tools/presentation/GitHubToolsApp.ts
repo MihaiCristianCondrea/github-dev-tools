@@ -348,13 +348,22 @@ export default class GitHubToolsApp extends WebComponent {
 	private toggleToken(view: "mapper" | "releases"): void {
 		const button = this.select(`[data-token-toggle="${view}"]`);
 		const panel = this.select(`#${view}-token-panel`);
-		const label = this.select(`#${view}-token-label`);
+		const label = this.select<HTMLElement>(`#${view}-token-label`);
+
 		if (!button || !panel || !label) return;
+
 		const shouldShow = !panel.classList.contains("open");
+
 		panel.classList.toggle("open", shouldShow);
 		panel.setAttribute("aria-hidden", String(!shouldShow));
 		button.setAttribute("aria-expanded", String(shouldShow));
-		label.textContent = shouldShow ? "Hide Settings" : "Token Settings";
+
+		label.classList.add("is-changing");
+
+		window.setTimeout(() => {
+			label.textContent = shouldShow ? "Hide Settings" : "Token Settings";
+			label.classList.remove("is-changing");
+		}, 140);
 	}
 
 	private setRepositoryMapFormat(format: RepositoryMapFormat, syncControl = true): void {
