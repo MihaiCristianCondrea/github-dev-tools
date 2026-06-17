@@ -345,26 +345,50 @@ export default class GitHubToolsApp extends WebComponent {
 		}
 	}
 
-	private toggleToken(view: "mapper" | "releases"): void {
-		const button = this.select(`[data-token-toggle="${view}"]`);
-		const panel = this.select(`#${view}-token-panel`);
-		const label = this.select<HTMLElement>(`#${view}-token-label`);
+private toggleToken(view: "mapper" | "releases"): void {
+	const button = this.select<HTMLElement>(`[data-token-toggle="${view}"]`);
+	const panel = this.select<HTMLElement>(`#${view}-token-panel`);
+	const label = this.select<HTMLElement>(`#${view}-token-label`);
 
-		if (!button || !panel || !label) return;
+	if (!button || !panel || !label) return;
 
-		const shouldShow = !panel.classList.contains("open");
+	const shouldShow = !panel.classList.contains("open");
+	const nextText = shouldShow ? "Hide Settings" : "Token Settings";
 
-		panel.classList.toggle("open", shouldShow);
-		panel.setAttribute("aria-hidden", String(!shouldShow));
-		button.setAttribute("aria-expanded", String(shouldShow));
+	button.getAnimations().forEach((animation) => animation.cancel());
 
-		label.classList.add("is-changing");
+	const startWidth = button.getBoundingClientRect().width;
 
-		window.setTimeout(() => {
-			label.textContent = shouldShow ? "Hide Settings" : "Token Settings";
-			label.classList.remove("is-changing");
-		}, 140);
-	}
+	panel.classList.toggle("open", shouldShow);
+	panel.setAttribute("aria-hidden", String(!shouldShow));
+
+	button.setAttribute("aria-expanded", String(shouldShow));
+	button.classList.toggle("is-expanded", shouldShow);
+	label.textContent = nextText;
+
+	const endWidth = button.getBoundingClientRect().width;
+
+	if (Math.round(startWidth) === Math.round(endWidth)) return;
+
+	button.style.width = `${endWidth}px`;
+
+	const animation = button.animate(
+		[
+			{ width: `${startWidth}px` },
+			{ width: `${endWidth}px` },
+		],
+		{
+			duration: 220,
+			easing: "cubic-bezier(.4, 0, .2, 1)",
+		},
+	);
+
+	animation.finished
+		.catch(() => undefined)
+		.finally(() => {
+			button.style.removeProperty("width");
+		});
+}
 
 	private setRepositoryMapFormat(format: RepositoryMapFormat, syncControl = true): void {
 		this.state.mapper.format = format;
