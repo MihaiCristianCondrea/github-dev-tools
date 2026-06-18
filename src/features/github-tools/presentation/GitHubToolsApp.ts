@@ -304,19 +304,20 @@ export default class GitHubToolsApp extends WebComponent {
 
 		section.classList.remove("hidden");
 		this.state.favorites.slice(0, 5).forEach((favorite) => {
-			const button = document.createElement("button");
-			button.type = "button";
-			button.className = "chip";
+			const button = document.createElement("md-assist-chip");
+			button.className = "favorite-chip";
 			const icon = this.createIcon("star");
+			icon.setAttribute("slot", "icon");
 			icon.classList.add("filled-icon");
 			button.append(icon, document.createTextNode(favorite.repo));
 			button.addEventListener("click", () => this.navigateTo("releases", repositoryUrl(favorite)));
 			list.append(button);
 		});
-		const seeAll = document.createElement("button");
-		seeAll.type = "button";
-		seeAll.className = "chip";
-		seeAll.append(document.createTextNode("See all"), this.createIcon("arrow_forward"));
+		const seeAll = document.createElement("md-assist-chip");
+		seeAll.className = "favorite-chip";
+		const seeAllIcon = this.createIcon("arrow_forward");
+		seeAllIcon.setAttribute("slot", "icon");
+		seeAll.append(seeAllIcon, document.createTextNode("See all"));
 		seeAll.addEventListener("click", () => this.navigateTo("favorites"));
 		list.append(seeAll);
 	}
@@ -340,11 +341,6 @@ export default class GitHubToolsApp extends WebComponent {
 		button.toggleAttribute("disabled", !parsed);
 		button.toggleAttribute("selected", active);
 		button.setAttribute("aria-label", active ? "Remove favorite" : "Add favorite");
-		const icon = button.querySelector("md-icon");
-		if (icon) {
-			icon.textContent = active ? "star" : "star_border";
-			icon.classList.toggle("filled-icon", active);
-		}
 	}
 
 	private toggleToken(view: "mapper" | "releases"): void {
@@ -357,39 +353,12 @@ export default class GitHubToolsApp extends WebComponent {
 		const shouldShow = !panel.classList.contains("open");
 		const nextText = shouldShow ? "Hide Settings" : "Token Settings";
 
-		button.getAnimations().forEach((animation) => animation.cancel());
-
-		const startWidth = button.getBoundingClientRect().width;
-
 		panel.classList.toggle("open", shouldShow);
 		panel.setAttribute("aria-hidden", String(!shouldShow));
 
 		button.setAttribute("aria-expanded", String(shouldShow));
 		button.classList.toggle("is-expanded", shouldShow);
 		label.textContent = nextText;
-
-		const endWidth = button.getBoundingClientRect().width;
-
-		if (Math.round(startWidth) === Math.round(endWidth)) return;
-
-		button.style.width = `${endWidth}px`;
-
-		const animation = button.animate(
-			[
-				{ width: `${startWidth}px` },
-				{ width: `${endWidth}px` },
-			],
-			{
-				duration: 220,
-				easing: "cubic-bezier(.4, 0, .2, 1)",
-			},
-		);
-
-		animation.finished
-			.catch(() => undefined)
-			.finally(() => {
-				button.style.removeProperty("width");
-			});
 	}
 
 	private setRepositoryMapFormat(format: RepositoryMapFormat, syncControl = true): void {
