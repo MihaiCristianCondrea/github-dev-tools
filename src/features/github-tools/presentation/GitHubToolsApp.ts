@@ -9,11 +9,11 @@ import type { ProcessedRelease, ReleaseAsset, ReleaseStats } from "../tools/rele
 import type { RepositoryMapFormat, RepositoryMapResult, RepositoryTreeItem } from "../tools/repo-mapper/domain/RepositoryTree";
 import GitHubUrlParser from "../core/services/GitHubUrlParser";
 import RepositoryMapBuilder from "../tools/repo-mapper/domain/RepositoryMapBuilder";
+import { hashFromViewId, isEmptyHashRoute, isKnownHashRoute, viewIdFromHash, type ViewId } from "./GitHubToolsRoutes";
 import WebComponent from "../../../core/webcomponents/WebComponent";
 import css from "./GitHubToolsApp.scss?raw";
 import html from "./GitHubToolsApp.html?raw";
 
-type ViewId = "home" | "favorites" | "mapper" | "releases" | "gitpatch";
 type NavigationDrawerElement = HTMLElement & { opened: boolean };
 type SegmentedButtonSetElement = HTMLElement & { setButtonSelected(index: number, selected: boolean): void };
 
@@ -45,6 +45,7 @@ type AppState = {
 
 export default class GitHubToolsApp extends WebComponent {
 	private pendingActions = new Set<"mapper" | "releases" | "patch">();
+	private readonly handleHashChange = (): void => this.activateViewFromHash();
 
 	private state: AppState = {
 		currentView: "home",
@@ -85,7 +86,8 @@ export default class GitHubToolsApp extends WebComponent {
 		this.bindSubmitButtonFallbacks();
 		this.renderFavorites();
 		this.renderHomeFavorites();
-		this.navigateTo("home", undefined, false);
+		window.addEventListener("hashchange", this.handleHashChange);
+		this.restoreInitialView();
 	}
 
 	private configureAppShowcase(): void {
@@ -178,7 +180,35 @@ export default class GitHubToolsApp extends WebComponent {
 		if (triggerIcon) triggerIcon.textContent = isOpen ? "menu_open" : "menu";
 	}
 
+	disconnectedCallback(): void {
+		window.removeEventListener("hashchange", this.handleHashChange);
+	}
+
+	private restoreInitialView(): void {
+		if (isEmptyHashRoute(window.location.hash) || !isKnownHashRoute(window.location.hash)) {
+			this.activateView("home", undefined, false);
+			return;
+		}
+
+		this.activateViewFromHash(false);
+	}
+
+	private activateViewFromHash(closeDrawer = true): void {
+		this.activateView(viewIdFromHash(window.location.hash), undefined, closeDrawer);
+	}
+
 	private navigateTo(viewId: ViewId, url?: string, closeDrawer = true): void {
+		const nextHash = hashFromViewId(viewId);
+		if (window.location.hash === nextHash) {
+			this.activateView(viewId, url, closeDrawer);
+			return;
+		}
+
+		window.location.hash = nextHash;
+		if (url || closeDrawer) this.activateView(viewId, url, closeDrawer);
+	}
+
+	private activateView(viewId: ViewId, url?: string, closeDrawer = true): void {
 		this.state.currentView = viewId;
 		this.selectAll(".view-section").forEach((section) => section.classList.remove("active"));
 		this.select(`#view-${viewId}`)?.classList.add("active");
