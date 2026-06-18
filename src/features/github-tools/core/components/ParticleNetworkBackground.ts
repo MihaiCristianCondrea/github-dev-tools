@@ -50,6 +50,9 @@ const MAX_PARTICLE_SPEED = 0.7;
 const PARTICLE_AREA = 12000;
 const MIN_PARTICLES = 256;
 const MAX_PARTICLES = 512;
+const MOBILE_MIN_PARTICLES = 128;
+const MOBILE_MAX_PARTICLES = 320;
+const SMALL_VIEWPORT_WIDTH = 720;
 const WORLD_MARGIN = 150;
 const COLOR_LERP_RATE = 0.08;
 const PARALLAX_SCROLL_STRENGTH = 0.15;
@@ -83,6 +86,7 @@ class ParticleNetworkBackground extends HTMLElement {
 	private rectUpdateFrameId: number | null = null;
 	private particles: Particle[] = [];
 	private connectionCounts = new Uint8Array(0);
+	private readonly connectionGrid = new Map<string, number[]>();
 
 	private width = 0;
 	private height = 0;
@@ -94,7 +98,9 @@ class ParticleNetworkBackground extends HTMLElement {
 
 	private visible = document.visibilityState !== "hidden";
 	private readonly reducedMotionQuery = window.matchMedia("(prefers-reduced-motion: reduce)");
+	private readonly coarsePointerQuery = window.matchMedia("(pointer: coarse)");
 	private reducedMotion = this.reducedMotionQuery.matches;
+	private coarsePointer = this.coarsePointerQuery.matches;
 
 	private readonly pointer: PointerState = {
 		x: 0, y: 0, normalizedX: 0, normalizedY: 0, worldX: 0, worldY: 0, active: false
@@ -138,6 +144,7 @@ class ParticleNetworkBackground extends HTMLElement {
 	connectedCallback(): void {
 		this.visible = document.visibilityState !== "hidden";
 		this.reducedMotion = this.reducedMotionQuery.matches;
+		this.coarsePointer = this.coarsePointerQuery.matches;
 
 		this.themeObserver = new MutationObserver(() => this.extractCssColors());
 		this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme", "style"] });
@@ -145,6 +152,7 @@ class ParticleNetworkBackground extends HTMLElement {
 
 		this.resizeObserver.observe(this);
 		this.reducedMotionQuery.addEventListener("change", this.handleReducedMotionChange);
+		this.coarsePointerQuery.addEventListener("change", this.handleCoarsePointerChange);
 		document.addEventListener("visibilitychange", this.handleVisibilityChange);
 		window.addEventListener("pointermove", this.handlePointerMove, { passive: true });
 		window.addEventListener("pointerleave", this.handlePointerLeave);
@@ -162,6 +170,7 @@ class ParticleNetworkBackground extends HTMLElement {
 		this.resizeObserver.disconnect();
 		this.themeObserver?.disconnect();
 		this.reducedMotionQuery.removeEventListener("change", this.handleReducedMotionChange);
+		this.coarsePointerQuery.removeEventListener("change", this.handleCoarsePointerChange);
 		document.removeEventListener("visibilitychange", this.handleVisibilityChange);
 		window.removeEventListener("pointermove", this.handlePointerMove);
 		window.removeEventListener("pointerleave", this.handlePointerLeave);
@@ -195,6 +204,11 @@ class ParticleNetworkBackground extends HTMLElement {
 	private readonly handleReducedMotionChange = (): void => {
 		this.reducedMotion = this.reducedMotionQuery.matches;
 		this.updateAnimationState();
+	};
+
+	private readonly handleCoarsePointerChange = (): void => {
+		this.coarsePointer = this.coarsePointerQuery.matches;
+		this.syncParticleCount();
 	};
 
 	private readonly handleScroll = (): void => {
@@ -266,7 +280,10 @@ class ParticleNetworkBackground extends HTMLElement {
 
 	private getTargetParticleCount(): number {
 		const rawCount = Math.floor((this.simulatedWidth * this.simulatedHeight) / PARTICLE_AREA);
-		return this.clamp(rawCount, MIN_PARTICLES, MAX_PARTICLES);
+		const constrainedViewport = this.coarsePointer || this.width <= SMALL_VIEWPORT_WIDTH;
+		const minParticles = constrainedViewport ? MOBILE_MIN_PARTICLES : MIN_PARTICLES;
+		const maxParticles = constrainedViewport ? MOBILE_MAX_PARTICLES : MAX_PARTICLES;
+		return this.clamp(rawCount, minParticles, maxParticles);
 	}
 
 	private syncParticleCount(): void {
@@ -416,6 +433,69 @@ class ParticleNetworkBackground extends HTMLElement {
 		return this.connectionCounts;
 	}
 
+	private prepareConnectionGrid(length: number): void {
+		this.connectionGrid.clear();
+
+		for (let i = 0; i < length; i++) {
+			const particle = this.particles[i];
+			const key = this.connectionGridKey(
+				Math.floor(particle.x / MAX_DISTANCE),
+				Math.floor(particle.y / MAX_DISTANCE)
+			);
+			const cell = this.connectionGrid.get(key);
+			if (cell) cell.push(i);
+			else this.connectionGrid.set(key, [i]);
+		}
+	}
+
+	private connectionGridKey(cellX: number, cellY: number): string {
+		return `${cellX}:${cellY}`;
+	}
+
+	private drawNearbyParticleConnections(index: number, connectionCounts: Uint8Array): void {
+		const source = this.particles[index];
+		const sourceCellX = Math.floor(source.x / MAX_DISTANCE);
+		const sourceCellY = Math.floor(source.y / MAX_DISTANCE);
+
+		for (let offsetY = -1; offsetY <= 1; offsetY++) {
+			for (let offsetX = -1; offsetX <= 1; offsetX++) {
+				if (connectionCounts[index] >= MAX_CONNECTIONS) return;
+
+				const cell = this.connectionGrid.get(this.connectionGridKey(sourceCellX + offsetX, sourceCellY + offsetY));
+				if (!cell) continue;
+
+				for (let i = 0; i < cell.length; i++) {
+					const targetIndex = cell[i];
+					if (targetIndex <= index) continue;
+					if (connectionCounts[index] >= MAX_CONNECTIONS) return;
+					if (connectionCounts[targetIndex] >= MAX_CONNECTIONS) continue;
+
+					this.drawParticleConnection(index, targetIndex, connectionCounts);
+				}
+			}
+		}
+	}
+
+	private drawParticleConnection(sourceIndex: number, targetIndex: number, connectionCounts: Uint8Array): void {
+		const source = this.particles[sourceIndex];
+		const target = this.particles[targetIndex];
+		const dx = target.x - source.x;
+		const dy = target.y - source.y;
+		const distSq = dx * dx + dy * dy;
+
+		if (distSq >= MAX_DISTANCE_SQUARED) return;
+
+		const distance = Math.sqrt(distSq);
+		this.context.globalAlpha = this.clamp(1 - (distance / MAX_DISTANCE), 0.02, 0.25);
+		this.context.beginPath();
+		this.context.moveTo(source.x, source.y);
+		this.context.lineTo(target.x, target.y);
+		this.context.stroke();
+
+		connectionCounts[sourceIndex]++;
+		connectionCounts[targetIndex]++;
+	}
+
 	private draw(): void {
 		const { context } = this;
 
@@ -433,6 +513,7 @@ class ParticleNetworkBackground extends HTMLElement {
 
 		const length = this.particles.length;
 		const connectionCounts = this.ensureConnectionBuffer(length);
+		this.prepareConnectionGrid(length);
 
 		const { r, g, b } = this.currentMuted;
 		const strokeRgb = `rgb(${Math.round(r)}, ${Math.round(g)}, ${Math.round(b)})`;
@@ -459,28 +540,7 @@ class ParticleNetworkBackground extends HTMLElement {
 			}
 
 			// 2. Particle-to-particle connections
-			for (let j = i + 1; j < length; j++) {
-				if (connectionCounts[i] >= MAX_CONNECTIONS) break;
-				if (connectionCounts[j] >= MAX_CONNECTIONS) continue;
-
-				const target = this.particles[j];
-				const dx = target.x - p.x;
-				const dy = target.y - p.y;
-				const distSq = dx * dx + dy * dy;
-
-				if (distSq < MAX_DISTANCE_SQUARED) {
-					const distance = Math.sqrt(distSq);
-					context.globalAlpha = this.clamp(1 - (distance / MAX_DISTANCE), 0.02, 0.25);
-
-					context.beginPath();
-					context.moveTo(p.x, p.y);
-					context.lineTo(target.x, target.y);
-					context.stroke();
-
-					connectionCounts[i]++;
-					connectionCounts[j]++;
-				}
-			}
+			this.drawNearbyParticleConnections(i, connectionCounts);
 
 			// Draw Dots
 			context.globalAlpha = p.alpha * 0.5;

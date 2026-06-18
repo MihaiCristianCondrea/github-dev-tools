@@ -10,6 +10,7 @@
 export default abstract class WebComponent extends HTMLElement {
 	html: string;
 	css: string;
+	private hasRendered = false;
 
 	protected constructor(html?: string, css?: string) {
 		super();
@@ -49,9 +50,12 @@ export default abstract class WebComponent extends HTMLElement {
 	}
 
 	async connectedCallback() {
-		this.loadStylesheet();
-		this.loadHtml();
-		this.onConnected();
+		if (!this.hasRendered) {
+			this.loadStylesheet();
+			this.loadHtml();
+			this.hasRendered = true;
+			this.onConnected();
+		}
 	}
 
 	loadStylesheet() {
