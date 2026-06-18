@@ -10,6 +10,13 @@
 4. `src/features/github-tools/presentation/GitHubToolsApp.ts` owns top-level navigation, the drawer, shared layout, favorites wiring, and tool switching.
 5. Tool actions call GitHub Tools core services plus tool-specific domain helpers, then render results back into the app shell template.
 
+
+## GitHub Tools routing
+
+GitHub Tools uses hash-based routing for its top-level views. The public deep-link routes are `#home`, `#repo-mapper`, `#release-stats`, `#git-patch`, and `#favorites`. These route names are treated as public URL API and should remain user-friendly rather than exposing internal view IDs such as `mapper`, `releases`, or `gitpatch`.
+
+The hash is the source of truth for restoring the selected view on refresh, direct deep links, and browser back/forward navigation. GitHub Pages works without a `404.html` fallback because URL fragments are handled entirely by the browser and are not sent to the static host. Do not replace this with path-based routing unless the deployment strategy changes to support SPA fallbacks or rewrites.
+
 ## Source layers
 
 ### `src/core`
