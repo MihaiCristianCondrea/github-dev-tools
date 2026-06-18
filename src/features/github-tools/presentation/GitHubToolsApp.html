@@ -78,18 +78,15 @@
                     <form id="mapper-form" class="form-stack">
                         <div class="field-with-action">
                             <md-outlined-text-field type="url" id="mapper-url" list="mapper-datalist" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field>
-                            <md-outlined-icon-button type="button" id="mapper-fav-btn" class="favorite-button" disabled aria-label="Add favorite">
+                            <md-outlined-icon-button type="button" id="mapper-fav-btn" class="favorite-button" disabled toggle aria-label="Add favorite" aria-label-selected="Remove favorite">
                                 <md-icon>star_border</md-icon>
+                                <md-icon slot="selected">star</md-icon>
                             </md-outlined-icon-button>
                         </div>
                         <div class="settings-row">
                             <md-text-button type="button" class="text-button token-settings-button" data-token-toggle="mapper" aria-expanded="false" aria-controls="mapper-token-panel">
-                <span class="token-settings-content">
-                  <span class="token-settings-gear" aria-hidden="true">
-                    <md-icon>settings</md-icon>
-                  </span>
-                  <span id="mapper-token-label" class="token-settings-label">Token Settings</span>
-                </span>
+                                <md-icon slot="icon" class="token-settings-icon">settings</md-icon>
+                                <span id="mapper-token-label" class="token-settings-label">Token Settings</span>
                             </md-text-button>
                             <md-outlined-segmented-button-set class="segmented" aria-label="Mapper output format">
                                 <md-outlined-segmented-button id="btn-format-ascii" data-format="ascii" selected label="ASCII">
@@ -125,16 +122,16 @@
                 <span>OUTPUT</span>
               </span>
                             <md-chip-set class="output-chip-set" aria-label="Output actions and statistics">
-                                <md-assist-chip class="output-chip" disabled aria-label="Folder count">
-                                    <md-icon slot="icon">folder</md-icon>
+                                <span class="output-stat" aria-label="Folder count">
+                                    <md-icon>folder</md-icon>
                                     <span>
                     <b id="mapper-stats-folders">0</b> Folders </span>
-                                </md-assist-chip>
-                                <md-assist-chip class="output-chip" disabled aria-label="File count">
-                                    <md-icon slot="icon">draft</md-icon>
+                                </span>
+                                <span class="output-stat" aria-label="File count">
+                                    <md-icon>draft</md-icon>
                                     <span>
                     <b id="mapper-stats-files">0</b> Files </span>
-                                </md-assist-chip>
+                                </span>
                                 <md-assist-chip type="button" id="mapper-copy-btn" class="output-chip action-chip">
                                     <md-icon slot="icon" data-icon>content_copy</md-icon>
                                     <span data-label>Copy Code</span>
@@ -152,18 +149,15 @@
                     <form id="releases-form" class="form-stack">
                         <div class="field-with-action">
                             <md-outlined-text-field type="url" id="releases-url" list="releases-datalist" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field>
-                            <md-outlined-icon-button type="button" id="releases-fav-btn" class="favorite-button" disabled aria-label="Add favorite">
+                            <md-outlined-icon-button type="button" id="releases-fav-btn" class="favorite-button" disabled toggle aria-label="Add favorite" aria-label-selected="Remove favorite">
                                 <md-icon>star_border</md-icon>
+                                <md-icon slot="selected">star</md-icon>
                             </md-outlined-icon-button>
                         </div>
                         <div class="settings-row">
                             <md-text-button type="button" class="text-button token-settings-button" data-token-toggle="releases" aria-expanded="false" aria-controls="releases-token-panel">
-                <span class="token-settings-content">
-                  <span class="token-settings-gear" aria-hidden="true">
-                    <md-icon>settings</md-icon>
-                  </span>
-                  <span id="releases-token-label" class="token-settings-label">Token Settings</span>
-                </span>
+                                <md-icon slot="icon" class="token-settings-icon">settings</md-icon>
+                                <span id="releases-token-label" class="token-settings-label">Token Settings</span>
                             </md-text-button>
                         </div>
                         <div id="releases-token-panel" class="token-field" aria-hidden="true">
@@ -246,10 +240,10 @@
                 <span>PATCH</span>
               </span>
                             <md-chip-set class="output-chip-set" aria-label="Patch actions and status">
-                                <md-assist-chip class="output-chip" disabled aria-label="Patch is ready to apply">
-                                    <md-icon slot="icon">check</md-icon>
+                                <span class="output-stat" aria-label="Patch is ready to apply">
+                                    <md-icon>check</md-icon>
                                     <span>Ready to Apply</span>
-                                </md-assist-chip>
+                                </span>
                                 <md-assist-chip type="button" id="patch-download-btn" class="output-chip action-chip">
                                     <md-icon slot="icon">download</md-icon>
                                     <span>Download</span>
