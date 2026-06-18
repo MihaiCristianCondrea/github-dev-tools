@@ -6,7 +6,7 @@ import type { FavoriteRepository, RepositoryRef } from "../core/models/Repositor
 import { repositoryUrl } from "../core/models/Repository";
 import type { PatchFile } from "../tools/git-patch/domain/PatchFile";
 import type { ProcessedRelease, ReleaseAsset, ReleaseStats } from "../tools/release-stats/domain/ReleaseStats";
-import type { RepositoryMapFormat, RepositoryTreeItem } from "../tools/repo-mapper/domain/RepositoryTree";
+import type { RepositoryMapFormat, RepositoryMapResult, RepositoryTreeItem } from "../tools/repo-mapper/domain/RepositoryTree";
 import GitHubUrlParser from "../core/services/GitHubUrlParser";
 import RepositoryMapBuilder from "../tools/repo-mapper/domain/RepositoryMapBuilder";
 import WebComponent from "../../../core/webcomponents/WebComponent";
@@ -33,6 +33,7 @@ type AppState = {
 		format: RepositoryMapFormat;
 		rawPaths: RepositoryTreeItem[];
 		parsedRepo: RepositoryRef | null;
+		outputs: Partial<Record<RepositoryMapFormat, RepositoryMapResult>>;
 	};
 	releases: {
 		data: ReleaseStats | null;
@@ -52,6 +53,7 @@ export default class GitHubToolsApp extends WebComponent {
 			format: "ascii",
 			rawPaths: [],
 			parsedRepo: null,
+			outputs: {},
 		},
 		releases: {
 			data: null,
@@ -345,50 +347,50 @@ export default class GitHubToolsApp extends WebComponent {
 		}
 	}
 
-private toggleToken(view: "mapper" | "releases"): void {
-	const button = this.select<HTMLElement>(`[data-token-toggle="${view}"]`);
-	const panel = this.select<HTMLElement>(`#${view}-token-panel`);
-	const label = this.select<HTMLElement>(`#${view}-token-label`);
+	private toggleToken(view: "mapper" | "releases"): void {
+		const button = this.select<HTMLElement>(`[data-token-toggle="${view}"]`);
+		const panel = this.select<HTMLElement>(`#${view}-token-panel`);
+		const label = this.select<HTMLElement>(`#${view}-token-label`);
 
-	if (!button || !panel || !label) return;
+		if (!button || !panel || !label) return;
 
-	const shouldShow = !panel.classList.contains("open");
-	const nextText = shouldShow ? "Hide Settings" : "Token Settings";
+		const shouldShow = !panel.classList.contains("open");
+		const nextText = shouldShow ? "Hide Settings" : "Token Settings";
 
-	button.getAnimations().forEach((animation) => animation.cancel());
+		button.getAnimations().forEach((animation) => animation.cancel());
 
-	const startWidth = button.getBoundingClientRect().width;
+		const startWidth = button.getBoundingClientRect().width;
 
-	panel.classList.toggle("open", shouldShow);
-	panel.setAttribute("aria-hidden", String(!shouldShow));
+		panel.classList.toggle("open", shouldShow);
+		panel.setAttribute("aria-hidden", String(!shouldShow));
 
-	button.setAttribute("aria-expanded", String(shouldShow));
-	button.classList.toggle("is-expanded", shouldShow);
-	label.textContent = nextText;
+		button.setAttribute("aria-expanded", String(shouldShow));
+		button.classList.toggle("is-expanded", shouldShow);
+		label.textContent = nextText;
 
-	const endWidth = button.getBoundingClientRect().width;
+		const endWidth = button.getBoundingClientRect().width;
 
-	if (Math.round(startWidth) === Math.round(endWidth)) return;
+		if (Math.round(startWidth) === Math.round(endWidth)) return;
 
-	button.style.width = `${endWidth}px`;
+		button.style.width = `${endWidth}px`;
 
-	const animation = button.animate(
-		[
-			{ width: `${startWidth}px` },
-			{ width: `${endWidth}px` },
-		],
-		{
-			duration: 220,
-			easing: "cubic-bezier(.4, 0, .2, 1)",
-		},
-	);
+		const animation = button.animate(
+			[
+				{ width: `${startWidth}px` },
+				{ width: `${endWidth}px` },
+			],
+			{
+				duration: 220,
+				easing: "cubic-bezier(.4, 0, .2, 1)",
+			},
+		);
 
-	animation.finished
-		.catch(() => undefined)
-		.finally(() => {
-			button.style.removeProperty("width");
-		});
-}
+		animation.finished
+			.catch(() => undefined)
+			.finally(() => {
+				button.style.removeProperty("width");
+			});
+	}
 
 	private setRepositoryMapFormat(format: RepositoryMapFormat, syncControl = true): void {
 		this.state.mapper.format = format;
@@ -420,6 +422,7 @@ private toggleToken(view: "mapper" | "releases"): void {
 		try {
 			const tree = await DataServices.github.getRepositoryTree(parsed, token);
 			this.state.mapper.rawPaths = tree.items;
+			this.state.mapper.outputs = {};
 			this.renderMapperOutput();
 			result?.classList.remove("hidden");
 			if (tree.truncated) this.showError("mapper", "Repo is massive, output was truncated by the GitHub API.");
@@ -432,7 +435,10 @@ private toggleToken(view: "mapper" | "releases"): void {
 	}
 
 	private renderMapperOutput(): void {
-		const result = RepositoryMapBuilder.build(this.state.mapper.rawPaths, this.state.mapper.format);
+		const { format, outputs, rawPaths } = this.state.mapper;
+		const result = outputs[format] ?? RepositoryMapBuilder.build(rawPaths, format);
+		outputs[format] = result;
+
 		this.select("#mapper-code")!.textContent = result.output;
 		this.select("#mapper-stats-files")!.textContent = String(result.files);
 		this.select("#mapper-stats-folders")!.textContent = String(result.folders);
@@ -471,10 +477,14 @@ private toggleToken(view: "mapper" | "releases"): void {
 	}
 
 	private renderReleases(): void {
+		this.renderSelectedReleaseDetails();
+		this.renderReleaseList();
+	}
+
+	private renderSelectedReleaseDetails(): void {
 		if (!this.state.releases.data) return;
 		const { total, releases } = this.state.releases.data;
 		const active = releases[this.state.releases.selectedIndex];
-		const maxDownloads = Math.max(...releases.map((release) => release.downloads), 0);
 		const maxAssetDownloads = Math.max(...active.assets.map((asset) => asset.downloads), 0);
 
 		this.select("#rel-detail-name")!.textContent = active.name;
@@ -494,10 +504,24 @@ private toggleToken(view: "mapper" | "releases"): void {
 		} else {
 			active.assets.forEach((asset) => assetList.append(this.createAssetRow(asset, maxAssetDownloads)));
 		}
+	}
 
+	private renderReleaseList(): void {
+		if (!this.state.releases.data) return;
+		const { releases } = this.state.releases.data;
+		const maxDownloads = Math.max(...releases.map((release) => release.downloads), 0);
 		const releaseList = this.select("#rel-list")!;
+
 		releaseList.textContent = "";
 		releases.forEach((release, index) => releaseList.append(this.createReleaseButton(release, index, maxDownloads)));
+	}
+
+	private syncSelectedReleaseButton(): void {
+		this.selectAll<HTMLButtonElement>("[data-release-index]").forEach((button) => {
+			const selected = Number(button.dataset.releaseIndex) === this.state.releases.selectedIndex;
+			button.classList.toggle("selected", selected);
+			button.setAttribute("aria-pressed", String(selected));
+		});
 	}
 
 	private createAssetRow(asset: ReleaseAsset, maxDownloads: number): HTMLElement {
@@ -515,6 +539,8 @@ private toggleToken(view: "mapper" | "releases"): void {
 		const button = document.createElement("button");
 		const selected = index === this.state.releases.selectedIndex;
 		button.type = "button";
+		button.dataset.releaseIndex = String(index);
+		button.setAttribute("aria-pressed", String(selected));
 		button.className = `release-button${selected ? " selected" : ""}`;
 		button.innerHTML = `<div class="release-button-header"><span class="release-button-title"></span><span class="release-button-count"></span></div><div class="bar-track"><div class="bar-fill"></div></div>`;
 		button.querySelector(".release-button-title")!.textContent = release.name;
@@ -523,7 +549,8 @@ private toggleToken(view: "mapper" | "releases"): void {
 		(button.querySelector(".bar-fill") as HTMLElement).style.width = `${width}%`;
 		button.addEventListener("click", () => {
 			this.state.releases.selectedIndex = index;
-			this.renderReleases();
+			this.syncSelectedReleaseButton();
+			this.renderSelectedReleaseDetails();
 		});
 		return button;
 	}

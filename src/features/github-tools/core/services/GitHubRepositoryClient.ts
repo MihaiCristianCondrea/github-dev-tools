@@ -24,7 +24,13 @@ type GithubReleaseResponse = {
 	assets: GithubAssetResponse[];
 };
 
+type CacheEntry<T> = { expiresAt: number; value: T };
+
+const GITHUB_READ_CACHE_TTL_MS = 2 * 60 * 1000;
+
 export default class GitHubRepositoryClient {
+	private readonly responseCache = new Map<string, CacheEntry<unknown> | Promise<unknown>>();
+
 	async getRepositoryTree(repository: RepositoryRef, token = ""): Promise<RepositoryTree> {
 		const headers = this.githubHeaders(token);
 		const repoData = await this.fetchJson<GithubRepoResponse>(
@@ -78,9 +84,43 @@ export default class GitHubRepositoryClient {
 	}
 
 	private async fetchJson<T>(url: string, headers: Record<string, string>, notFoundMessage: string): Promise<T> {
+		const cacheKey = this.cacheKey(url, headers);
+		const cached = this.responseCache.get(cacheKey);
+
+		if (cached instanceof Promise) return cached as Promise<T>;
+		if (cached && cached.expiresAt > Date.now()) return cached.value as T;
+		if (cached) this.responseCache.delete(cacheKey);
+
+		const request = this.fetchJsonUncached<T>(url, headers, notFoundMessage);
+		this.responseCache.set(cacheKey, request);
+
+		try {
+			const value = await request;
+			this.responseCache.set(cacheKey, { value, expiresAt: Date.now() + GITHUB_READ_CACHE_TTL_MS });
+			return value;
+		} catch (error) {
+			this.responseCache.delete(cacheKey);
+			throw error;
+		}
+	}
+
+	private async fetchJsonUncached<T>(url: string, headers: Record<string, string>, notFoundMessage: string): Promise<T> {
 		const response = await fetch(url, { headers });
 		if (!response.ok) throw new Error(response.status === 404 ? notFoundMessage : `GitHub API error (${response.status})`);
 		return (await response.json()) as T;
+	}
+
+	private cacheKey(url: string, headers: Record<string, string>): string {
+		const authorization = headers.Authorization;
+		return `${authorization ? `auth-${this.hashTokenIdentifier(authorization)}` : "anonymous"}:${url}`;
+	}
+
+	private hashTokenIdentifier(value: string): string {
+		let hash = 0;
+		for (let i = 0; i < value.length; i++) {
+			hash = ((hash << 5) - hash + value.charCodeAt(i)) | 0;
+		}
+		return hash.toString(36);
 	}
 
 	private githubHeaders(token: string): Record<string, string> {
