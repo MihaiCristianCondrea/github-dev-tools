@@ -184,11 +184,13 @@ export default class GitHubToolsApp extends WebComponent {
 		this.select(`#view-${viewId}`)?.classList.add("active");
 
 		this.selectAll(".nav-item").forEach((item) => {
-			item.classList.remove("active");
+			item.toggleAttribute("data-active", false);
+			item.removeAttribute("aria-current");
 			item.querySelector("md-icon, .material-symbols-outlined")?.classList.remove("filled-icon");
 		});
 		const activeNav = this.select(`#nav-${viewId}`);
-		activeNav?.classList.add("active");
+		activeNav?.toggleAttribute("data-active", true);
+		activeNav?.setAttribute("aria-current", "page");
 		activeNav?.querySelector("md-icon, .material-symbols-outlined")?.classList.add("filled-icon");
 		const topbarTitle = this.select("#topbar-title");
 		if (topbarTitle) topbarTitle.textContent = VIEW_TITLES[viewId];
