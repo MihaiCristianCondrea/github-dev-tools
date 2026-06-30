@@ -8,7 +8,8 @@
                     <md-icon>close</md-icon>
                 </md-icon-button>
             </div>
-            <div class="drawer-content">
+            <div class="drawer-body">
+                <div class="drawer-content">
                 <md-item id="nav-home" class="nav-item" data-view="home" role="button" tabindex="0">
                     <span class="nav-item-container" slot="container" aria-hidden="true"></span>
                     <md-icon slot="start">home</md-icon> Home
@@ -29,6 +30,26 @@
                     <span class="nav-item-container" slot="container" aria-hidden="true"></span>
                     <md-icon slot="start">difference</md-icon> Git Patch
                 </md-item>
+                </div>
+                <div class="drawer-footer" aria-label="App settings and links">
+                    <p class="drawer-footer-label">Theme</p>
+                    <div class="theme-options" role="group" aria-label="Theme options">
+                        <md-icon-button type="button" class="theme-option" data-theme-option="light" aria-label="Use light theme">
+                            <md-icon>light_mode</md-icon>
+                        </md-icon-button>
+                        <md-icon-button type="button" class="theme-option" data-theme-option="dark" aria-label="Use dark theme">
+                            <md-icon>dark_mode</md-icon>
+                        </md-icon-button>
+                        <md-icon-button type="button" class="theme-option" data-theme-option="system" aria-label="Use system theme">
+                            <md-icon>brightness_auto</md-icon>
+                        </md-icon-button>
+                    </div>
+                    <div class="drawer-links">
+                        <a href="https://mihaicristiancondrea.github.io/profile/#privacy-policy" rel="noopener">Privacy Policy</a>
+                        <span aria-hidden="true">·</span>
+                        <a href="https://mihaicristiancondrea.github.io/profile/#code-of-conduct" rel="noopener">Code of Conduct</a>
+                    </div>
+                </div>
             </div>
         </md-navigation-drawer-modal>
     </div>
@@ -266,8 +287,8 @@
             <section id="view-favorites" class="view-section" aria-label="Favorites">
                 <div id="favorites-grid" class="favorites-grid"></div>
                 <div id="favorites-empty" class="empty-state hidden">
-                    <div>
-                        <md-icon>star</md-icon>
+                    <div class="empty-state-icon">
+                        <span class="material-symbols-outlined empty-star-icon" aria-hidden="true">star</span>
                     </div>
                     <h2>No favorites yet</h2>
                     <p>Star repositories in Repo Mapper or Release Stats to save them here.</p>
