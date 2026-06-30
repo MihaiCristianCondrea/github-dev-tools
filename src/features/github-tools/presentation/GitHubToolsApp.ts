@@ -16,6 +16,9 @@ import html from "./GitHubToolsApp.html?raw";
 
 type NavigationDrawerElement = HTMLElement & { opened: boolean };
 type SegmentedButtonSetElement = HTMLElement & { setButtonSelected(index: number, selected: boolean): void };
+type ThemePreference = "light" | "dark" | "system";
+
+const THEME_STORAGE_KEY = "github_tools_theme";
 
 const VIEW_TITLES: Record<ViewId, string> = {
 	home: "Home",
@@ -46,6 +49,7 @@ type AppState = {
 export default class GitHubToolsApp extends WebComponent {
 	private pendingActions = new Set<"mapper" | "releases" | "patch">();
 	private readonly handleHashChange = (): void => this.activateViewFromHash();
+	private readonly handleSystemThemeChange = (): void => this.applyTheme(this.getThemePreference(), false);
 
 	private state: AppState = {
 		currentView: "home",
@@ -77,16 +81,19 @@ export default class GitHubToolsApp extends WebComponent {
 
 	onConnected(): void {
 		this.loadFavorites();
+		this.applyTheme(this.getThemePreference(), false);
 		this.bindNavigation();
 		this.bindForms();
 		this.bindFavorites();
 		this.bindRepositoryMapFormatControls();
 		this.bindPatchActions();
+		this.bindThemeOptions();
 		this.configureAppShowcase();
 		this.bindSubmitButtonFallbacks();
 		this.renderFavorites();
 		this.renderHomeFavorites();
 		window.addEventListener("hashchange", this.handleHashChange);
+		window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", this.handleSystemThemeChange);
 		this.restoreInitialView();
 	}
 
@@ -116,7 +123,7 @@ export default class GitHubToolsApp extends WebComponent {
 		this.select<NavigationDrawerElement>("#drawer")?.addEventListener("navigation-drawer-changed", (event) =>
 			this.syncDrawerState((event as CustomEvent<{ opened: boolean }>).detail.opened)
 		);
-		this.selectAll<HTMLElement>("[data-view]").forEach((button) => {
+		this.selectAll<HTMLElement>(".nav-item[data-view], .tool-card[data-view]").forEach((button) => {
 			const activate = () => {
 				const view = button.dataset.view as ViewId;
 				this.navigateTo(view);
@@ -127,6 +134,33 @@ export default class GitHubToolsApp extends WebComponent {
 				event.preventDefault();
 				activate();
 			});
+		});
+	}
+
+	private bindThemeOptions(): void {
+		this.selectAll<HTMLElement>("[data-theme-option]").forEach((button) => {
+			button.addEventListener("click", () => {
+				const theme = button.dataset.themeOption;
+				if (theme === "light" || theme === "dark" || theme === "system") this.applyTheme(theme);
+			});
+		});
+	}
+
+	private getThemePreference(): ThemePreference {
+		const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+		return storedTheme === "light" || storedTheme === "dark" || storedTheme === "system" ? storedTheme : "system";
+	}
+
+	private applyTheme(theme: ThemePreference, persist = true): void {
+		if (persist) window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+
+		const effectiveTheme = theme === "system" ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : theme;
+		this.dataset.theme = effectiveTheme;
+		this.style.colorScheme = effectiveTheme;
+		this.selectAll<HTMLElement>("[data-theme-option]").forEach((button) => {
+			const isActive = button.dataset.themeOption === theme;
+			button.toggleAttribute("data-active", isActive);
+			button.setAttribute("aria-pressed", String(isActive));
 		});
 	}
 
@@ -182,6 +216,7 @@ export default class GitHubToolsApp extends WebComponent {
 
 	disconnectedCallback(): void {
 		window.removeEventListener("hashchange", this.handleHashChange);
+		window.matchMedia("(prefers-color-scheme: dark)").removeEventListener("change", this.handleSystemThemeChange);
 	}
 
 	private restoreInitialView(): void {
