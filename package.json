@@ -11,7 +11,7 @@
 	},
 	"devDependencies": {
 		"typescript": "^7.0.2",
-		"vite": "^8.1.4"
+		"vite": "^8.1.5"
 	},
 	"dependencies": {
 		"@material/web": "^2.4.1"
