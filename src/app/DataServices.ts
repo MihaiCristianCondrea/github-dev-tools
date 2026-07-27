@@ -1,11 +1,12 @@
 import { GetPromotedAppsUseCase } from "../features/app-showcase/domain/usecases/GetPromotedAppsUseCase";
-import FavoriteRepositoryStore from "../features/favorites/data/local/FavoriteRepositoryStore";
+import { LocalFavoritesRepository } from "../features/favorites/data/repositories/LocalFavoritesRepository";
+import { ManageFavoritesUseCase } from "../features/favorites/domain/usecases/ManageFavoritesUseCase";
 import GitHubRepositoryClient from "../features/github-tools/core/services/GitHubRepositoryClient";
 import { RemoteAppsRepository } from "../features/app-showcase/data/repositories/RemoteAppsRepository";
 
 export default class DataServices {
 	static github = new GitHubRepositoryClient();
-	static favorites = new FavoriteRepositoryStore();
+	static favorites = new ManageFavoritesUseCase(new LocalFavoritesRepository());
 	static promotedApps = new GetPromotedAppsUseCase(new RemoteAppsRepository());
 
 	static async init(): Promise<void> {

@@ -1,8 +1,10 @@
 import DataServices from "../../../app/DataServices";
 import type { AppShowcaseSection } from "../../app-showcase/presentation/AppShowcaseSection";
 import "../../app-showcase/presentation/AppShowcaseSection";
-import "../core/components/ParticleNetworkBackground";
-import type { FavoriteRepository, RepositoryRef } from "../core/models/Repository";
+import "../../../core/components/ParticleNetworkBackground";
+import type { RepositoryRef } from "../core/models/Repository";
+import type { FavoriteRepository } from "../../favorites/domain/models/FavoriteRepository";
+import { FavoritesView } from "../../favorites/presentation/FavoritesView";
 import { repositoryUrl } from "../core/models/Repository";
 import type { PatchFile } from "../tools/git-patch/domain/PatchFile";
 import type { ProcessedRelease, ReleaseAsset, ReleaseStats } from "../tools/release-stats/domain/ReleaseStats";
@@ -47,6 +49,7 @@ type AppState = {
 };
 
 export default class GitHubToolsApp extends WebComponent {
+	private readonly favoritesView = new FavoritesView();
 	private pendingActions = new Set<"mapper" | "releases" | "patch">();
 	private readonly handleHashChange = (): void => this.activateViewFromHash();
 	private readonly handleSystemThemeChange = (): void => this.applyTheme(this.getThemePreference(), false);
@@ -300,62 +303,14 @@ export default class GitHubToolsApp extends WebComponent {
 		const empty = this.select("#favorites-empty");
 		if (!grid || !empty) return;
 
-		grid.textContent = "";
-		if (this.state.favorites.length === 0) {
-			empty.classList.remove("hidden");
-			return;
-		}
-
-		empty.classList.add("hidden");
-		this.state.favorites.forEach((favorite) => grid.append(this.createFavoriteCard(favorite)));
-	}
-
-	private createFavoriteCard(favorite: FavoriteRepository): HTMLElement {
-		const card = document.createElement("md-outlined-card");
-		card.className = "favorite-card";
-
-		const header = document.createElement("div");
-		header.className = "favorite-card-header";
-		const titleWrap = document.createElement("div");
-		titleWrap.className = "favorite-title-wrap";
-		const owner = document.createElement("div");
-		owner.className = "favorite-owner";
-		owner.append(this.createIcon("folder_open"), document.createTextNode(favorite.owner));
-		const title = document.createElement("h3");
-		title.textContent = favorite.repo;
-		titleWrap.append(owner, title);
-		const remove = document.createElement("md-outlined-icon-button");
-		remove.setAttribute("type", "button");
-		remove.setAttribute("aria-label", `Remove ${favorite.owner}/${favorite.repo} from favorites`);
-		const removeIcon = this.createIcon("star");
-		removeIcon.classList.add("filled-icon");
-		remove.append(removeIcon);
-		remove.addEventListener("click", () => {
-			this.state.favorites = this.state.favorites.filter(
-				(item) => !(item.owner.toLowerCase() === favorite.owner.toLowerCase() && item.repo.toLowerCase() === favorite.repo.toLowerCase())
-			);
-			this.saveFavorites();
+		this.favoritesView.renderGrid(grid, empty, this.state.favorites, {
+			remove: (favorite) => {
+				this.state.favorites = this.state.favorites.filter((item) => !DataServices.favorites.isFavorite([item], favorite));
+				this.saveFavorites();
+			},
+			openMapper: (favorite) => this.navigateTo("mapper", repositoryUrl(favorite)),
+			openStats: (favorite) => this.navigateTo("releases", repositoryUrl(favorite))
 		});
-		header.append(titleWrap, remove);
-
-		const actions = document.createElement("div");
-		actions.className = "favorite-card-actions";
-		actions.append(
-			this.createFavoriteAction("terminal", "Map", () => this.navigateTo("mapper", repositoryUrl(favorite))),
-			this.createFavoriteAction("bar_chart", "Stats", () => this.navigateTo("releases", repositoryUrl(favorite)))
-		);
-		card.append(header, actions);
-		return card;
-	}
-
-	private createFavoriteAction(iconName: string, label: string, onClick: () => void): HTMLElement {
-		const button = document.createElement("md-outlined-button");
-		button.setAttribute("type", "button");
-		const icon = this.createIcon(iconName);
-		icon.setAttribute("slot", "icon");
-		button.append(icon, document.createTextNode(label));
-		button.addEventListener("click", onClick);
-		return button;
 	}
 
 	private renderHomeFavorites(): void {
@@ -363,30 +318,13 @@ export default class GitHubToolsApp extends WebComponent {
 		const list = this.select("#home-favorites-list");
 		if (!section || !list) return;
 
-		list.textContent = "";
-		if (this.state.favorites.length === 0) {
-			section.classList.add("hidden");
-			return;
-		}
-
-		section.classList.remove("hidden");
-		this.state.favorites.slice(0, 5).forEach((favorite) => {
-			const button = document.createElement("md-assist-chip");
-			button.className = "favorite-chip";
-			const icon = this.createIcon("star");
-			icon.setAttribute("slot", "icon");
-			icon.classList.add("filled-icon");
-			button.append(icon, document.createTextNode(favorite.repo));
-			button.addEventListener("click", () => this.navigateTo("releases", repositoryUrl(favorite)));
-			list.append(button);
-		});
-		const seeAll = document.createElement("md-assist-chip");
-		seeAll.className = "favorite-chip";
-		const seeAllIcon = this.createIcon("arrow_forward");
-		seeAllIcon.setAttribute("slot", "icon");
-		seeAll.append(seeAllIcon, document.createTextNode("See all"));
-		seeAll.addEventListener("click", () => this.navigateTo("favorites"));
-		list.append(seeAll);
+		this.favoritesView.renderHome(
+			section,
+			list,
+			this.state.favorites,
+			(favorite) => this.navigateTo("releases", repositoryUrl(favorite)),
+			() => this.navigateTo("favorites")
+		);
 	}
 
 	private handleUrlInput(view: "mapper" | "releases"): void {

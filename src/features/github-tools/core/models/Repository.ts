@@ -3,10 +3,6 @@ export type RepositoryRef = {
 	repo: string;
 };
 
-export type FavoriteRepository = RepositoryRef & {
-	timestamp: number;
-};
-
 export type CommitRef = RepositoryRef & {
 	sha: string;
 };
