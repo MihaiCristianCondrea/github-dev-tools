@@ -84,7 +84,10 @@ export default class GitHubRepositoryClient {
 	}
 
 	private async fetchJson<T>(url: string, headers: Record<string, string>, notFoundMessage: string): Promise<T> {
-		const cacheKey = this.cacheKey(url, headers);
+		// Never retain credentials (or private repository responses) in the shared response cache.
+		if (headers.Authorization) return this.fetchJsonUncached<T>(url, headers, notFoundMessage);
+
+		const cacheKey = url;
 		const cached = this.responseCache.get(cacheKey);
 
 		if (cached instanceof Promise) return cached as Promise<T>;
@@ -106,26 +109,26 @@ export default class GitHubRepositoryClient {
 
 	private async fetchJsonUncached<T>(url: string, headers: Record<string, string>, notFoundMessage: string): Promise<T> {
 		const response = await fetch(url, { headers });
-		if (!response.ok) throw new Error(response.status === 404 ? notFoundMessage : `GitHub API error (${response.status})`);
+		if (!response.ok) throw new Error(this.githubErrorMessage(response.status, notFoundMessage));
 		return (await response.json()) as T;
 	}
 
-	private cacheKey(url: string, headers: Record<string, string>): string {
-		const authorization = headers.Authorization;
-		return `${authorization ? `auth-${this.hashTokenIdentifier(authorization)}` : "anonymous"}:${url}`;
-	}
-
-	private hashTokenIdentifier(value: string): string {
-		let hash = 0;
-		for (let i = 0; i < value.length; i++) {
-			hash = ((hash << 5) - hash + value.charCodeAt(i)) | 0;
-		}
-		return hash.toString(36);
+	private githubErrorMessage(status: number, notFoundMessage: string): string {
+		if (status === 401) return "GitHub rejected the access token. Check that it is valid and has not expired.";
+		if (status === 403) return "GitHub denied access. Check the token's repository access, permissions, organization approval, and SSO authorization.";
+		if (status === 404) return `${notFoundMessage}. If this is private, provide a token with access to this repository.`;
+		return `GitHub API error (${status})`;
 	}
 
 	private githubHeaders(token: string): Record<string, string> {
-		const headers: Record<string, string> = { Accept: "application/vnd.github.v3+json" };
-		if (token.trim()) headers.Authorization = `token ${token.trim()}`;
+		const headers: Record<string, string> = {
+			Accept: "application/vnd.github.v3+json",
+			"X-GitHub-Api-Version": "2022-11-28",
+		};
+		// GitHub access tokens are opaque credentials. Do not infer their type,
+		// validity, or length from a prefix because formats can change over time.
+		const accessToken = token.trim();
+		if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 		return headers;
 	}
 }
