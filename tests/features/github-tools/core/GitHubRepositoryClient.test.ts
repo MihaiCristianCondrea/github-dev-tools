@@ -4,6 +4,15 @@ import GitHubRepositoryClient from "../../../../src/features/github-tools/core/s
 
 const repository = { owner: "octocat", repo: "private-repo" };
 
+const githubAccessTokens = [
+	"ghp_classic-token",
+	"github_pat_fine-grained-token",
+	"gho_oauth-token",
+	"ghu_app-user-token",
+	"ghs_installation-token",
+	"ghs_1234567890_header.payload.signature",
+];
+
 test("sends a trimmed bearer token and API version for repository requests", async (context) => {
 	const requests: Array<{ url: string; headers: Headers }> = [];
 	context.mock.method(globalThis, "fetch", async (input, init) => {
@@ -21,6 +30,23 @@ test("sends a trimmed bearer token and API version for repository requests", asy
 		assert.equal(request.headers.get("Authorization"), "Bearer github_pat_secret");
 		assert.equal(request.headers.get("X-GitHub-Api-Version"), "2022-11-28");
 	}
+});
+
+test("treats every GitHub access token format as an opaque bearer credential", async (context) => {
+	const authorizationHeaders: Array<string | null> = [];
+	context.mock.method(globalThis, "fetch", async (_input, init) => {
+		authorizationHeaders.push(new Headers(init?.headers).get("Authorization"));
+		return Response.json([]);
+	});
+
+	for (const token of githubAccessTokens) {
+		await assert.rejects(new GitHubRepositoryClient().getReleaseStats(repository, token), /No releases found/);
+	}
+
+	assert.deepEqual(
+		authorizationHeaders,
+		githubAccessTokens.map((token) => `Bearer ${token}`)
+	);
 });
 
 test("does not send an authorization header without a token", async (context) => {

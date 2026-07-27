@@ -125,7 +125,10 @@ export default class GitHubRepositoryClient {
 			Accept: "application/vnd.github.v3+json",
 			"X-GitHub-Api-Version": "2022-11-28",
 		};
-		if (token.trim()) headers.Authorization = `Bearer ${token.trim()}`;
+		// GitHub access tokens are opaque credentials. Do not infer their type,
+		// validity, or length from a prefix because formats can change over time.
+		const accessToken = token.trim();
+		if (accessToken) headers.Authorization = `Bearer ${accessToken}`;
 		return headers;
 	}
 }
