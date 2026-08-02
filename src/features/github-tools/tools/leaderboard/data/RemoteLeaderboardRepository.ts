@@ -1,4 +1,4 @@
-import { formatMessage, strings } from "../../../../../core/localization/Localization";
+import { formatMessage, strings } from "../../../../../core/localization/Localization.ts";
 import type { Leaderboard } from "../domain/Leaderboard";
 import type { LeaderboardRepository } from "../domain/LeaderboardRepository";
 
