@@ -29,6 +29,14 @@ export class LeaderboardView {
 		users.forEach((user) => list.append(this.createUserRow(user, country, hasQuery)));
 	}
 
+	renderPagination(page: number, pageCount: number, resultCount: number): void {
+		const pagination = this.element("#leaderboard-pagination");
+		pagination.classList.toggle("hidden", resultCount === 0 || pageCount <= 1);
+		this.element("#leaderboard-page-status").textContent = `Page ${page} of ${pageCount}`;
+		this.element("#leaderboard-previous").toggleAttribute("disabled", page <= 1);
+		this.element("#leaderboard-next").toggleAttribute("disabled", page >= pageCount);
+	}
+
 	showError(message: string): void {
 		this.element("#leaderboard-error-text").textContent = message;
 		this.element("#leaderboard-error").classList.remove("hidden");
