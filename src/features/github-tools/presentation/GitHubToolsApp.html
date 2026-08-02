@@ -1,10 +1,10 @@
 <particle-network-background></particle-network-background>
 <div class="app-shell">
     <div id="drawer-layer" class="drawer-layer" aria-hidden="true">
-        <md-navigation-drawer-modal id="drawer" class="drawer" pivot="start" aria-label="Primary navigation" aria-modal="true">
+        <md-navigation-drawer-modal id="drawer" class="drawer" pivot="start" aria-label="{{common.navigation.primary}}" aria-modal="true">
             <div class="drawer-header">
-                <h2>Menu</h2>
-                <md-icon-button id="drawer-close" type="button" aria-label="Close menu">
+                <h2>{{common.navigation.menu}}</h2>
+                <md-icon-button id="drawer-close" type="button" aria-label="{{common.navigation.closeMenu}}">
                     <md-icon>close</md-icon>
                 </md-icon-button>
             </div>
@@ -12,46 +12,46 @@
                 <div class="drawer-content">
                 <md-item id="nav-home" class="nav-item" data-view="home" role="button" tabindex="0">
                     <span class="nav-item-container" slot="container" aria-hidden="true"></span>
-                    <md-icon slot="start">home</md-icon> Home
+                    <md-icon slot="start">home</md-icon> {{common.navigation.home}}
                 </md-item>
                 <md-item id="nav-favorites" class="nav-item" data-view="favorites" role="button" tabindex="0">
                     <span class="nav-item-container" slot="container" aria-hidden="true"></span>
-                    <md-icon slot="start">star</md-icon> Favorites
+                    <md-icon slot="start">star</md-icon> {{common.navigation.favorites}}
                 </md-item>
                 <md-item id="nav-leaderboard" class="nav-item" data-view="leaderboard" role="button" tabindex="0">
                     <span class="nav-item-container" slot="container" aria-hidden="true"></span>
-                    <md-icon slot="start">leaderboard</md-icon> Leaderboard
+                    <md-icon slot="start">leaderboard</md-icon> {{common.navigation.leaderboard}}
                 </md-item>
                 <md-item id="nav-mapper" class="nav-item" data-view="mapper" role="button" tabindex="0">
                     <span class="nav-item-container" slot="container" aria-hidden="true"></span>
-                    <md-icon slot="start">terminal</md-icon> Repo Mapper
+                    <md-icon slot="start">terminal</md-icon> {{common.navigation.repoMapper}}
                 </md-item>
                 <md-item id="nav-releases" class="nav-item" data-view="releases" role="button" tabindex="0">
                     <span class="nav-item-container" slot="container" aria-hidden="true"></span>
-                    <md-icon slot="start">bar_chart</md-icon> Release Stats
+                    <md-icon slot="start">bar_chart</md-icon> {{common.navigation.releaseStats}}
                 </md-item>
                 <md-item id="nav-gitpatch" class="nav-item" data-view="gitpatch" role="button" tabindex="0">
                     <span class="nav-item-container" slot="container" aria-hidden="true"></span>
-                    <md-icon slot="start">difference</md-icon> Git Patch
+                    <md-icon slot="start">difference</md-icon> {{common.navigation.gitPatch}}
                 </md-item>
                 </div>
-                <div class="drawer-footer" aria-label="App settings and links">
-                    <p class="drawer-footer-label">Theme</p>
-                    <div class="theme-options" role="group" aria-label="Theme options">
-                        <md-icon-button type="button" class="theme-option" data-theme-option="light" aria-label="Use light theme">
+                <div class="drawer-footer" aria-label="{{common.settings.sectionLabel}}">
+                    <p class="drawer-footer-label">{{common.settings.theme}}</p>
+                    <div class="theme-options" role="group" aria-label="{{common.settings.themeOptions}}">
+                        <md-icon-button type="button" class="theme-option" data-theme-option="light" aria-label="{{common.settings.useLightTheme}}">
                             <md-icon>light_mode</md-icon>
                         </md-icon-button>
-                        <md-icon-button type="button" class="theme-option" data-theme-option="dark" aria-label="Use dark theme">
+                        <md-icon-button type="button" class="theme-option" data-theme-option="dark" aria-label="{{common.settings.useDarkTheme}}">
                             <md-icon>dark_mode</md-icon>
                         </md-icon-button>
-                        <md-icon-button type="button" class="theme-option" data-theme-option="system" aria-label="Use system theme">
+                        <md-icon-button type="button" class="theme-option" data-theme-option="system" aria-label="{{common.settings.useSystemTheme}}">
                             <md-icon>brightness_auto</md-icon>
                         </md-icon-button>
                     </div>
                     <div class="drawer-links">
-                        <a href="https://mihaicristiancondrea.github.io/profile/#privacy-policy" rel="noopener">Privacy Policy</a>
+                        <a href="https://mihaicristiancondrea.github.io/profile/#privacy-policy" rel="noopener">{{common.settings.privacyPolicy}}</a>
                         <span aria-hidden="true">·</span>
-                        <a href="https://mihaicristiancondrea.github.io/profile/#code-of-conduct" rel="noopener">Code of Conduct</a>
+                        <a href="https://mihaicristiancondrea.github.io/profile/#code-of-conduct" rel="noopener">{{common.settings.codeOfConduct}}</a>
                     </div>
                 </div>
             </div>
@@ -59,64 +59,61 @@
     </div>
     <header class="topbar">
         <div class="topbar-title">
-            <md-icon-button id="drawer-open" type="button" aria-label="Open menu" aria-expanded="false">
+            <md-icon-button id="drawer-open" type="button" aria-label="{{common.navigation.openMenu}}" aria-expanded="false">
                 <md-icon id="drawer-open-icon">menu</md-icon>
             </md-icon-button>
-            <h1 id="topbar-title">Home</h1>
+            <h1 id="topbar-title">{{common.navigation.home}}</h1>
         </div>
-		<md-outlined-text-field class="topbar-leaderboard-search" id="leaderboard-search" type="search" label="Search leaderboard" placeholder="GitHub username" autocomplete="off">
-			<md-icon slot="leading-icon">search</md-icon>
-		</md-outlined-text-field>
+        <md-outlined-text-field class="topbar-leaderboard-search" id="leaderboard-search" type="search" label="{{leaderboard.search.label}}" placeholder="{{leaderboard.search.placeholder}}" autocomplete="off">
+            <md-icon slot="leading-icon">search</md-icon>
+        </md-outlined-text-field>
     </header>
     <main class="content">
         <div class="content-inner">
             <section id="view-home" class="view-section active" aria-labelledby="home-title">
                 <div class="hero">
-                    <p class="eyebrow">GitHub developer utilities</p>
-                    <h2 id="home-title">Map repositories, inspect releases, and extract patches.</h2>
-                    <p>Fast browser-native tools for public GitHub repositories, with optional token support for higher API limits.</p>
+                    <p class="eyebrow">{{githubTools.home.eyebrow}}</p>
+                    <h2 id="home-title">{{githubTools.home.title}}</h2>
+                    <p>{{githubTools.home.description}}</p>
                 </div>
                 <div class="tool-grid">
                     <md-outlined-card class="tool-card" data-view="mapper" role="button" tabindex="0">
                         <span class="tool-icon material-symbols-outlined">terminal</span>
-                        <span class="tool-card-title">Repo Mapper</span>
-                        <span class="tool-card-copy">Generate ASCII directory trees or plain path lists from any public repository.</span>
-                        <span class="tool-link">Launch Tool <md-icon>arrow_forward</md-icon>
-            </span>
+                        <span class="tool-card-title">{{common.navigation.repoMapper}}</span>
+                        <span class="tool-card-copy">{{githubTools.home.mapperDescription}}</span>
+                        <span class="tool-link">{{common.actions.launchTool}} <md-icon>arrow_forward</md-icon></span>
                     </md-outlined-card>
                     <md-outlined-card class="tool-card" data-view="releases" role="button" tabindex="0">
                         <span class="tool-icon material-symbols-outlined">bar_chart</span>
-                        <span class="tool-card-title">Release Stats</span>
-                        <span class="tool-card-copy">Visualize download counts and asset performance for GitHub releases.</span>
-                        <span class="tool-link">Launch Tool <md-icon>arrow_forward</md-icon>
-            </span>
+                        <span class="tool-card-title">{{common.navigation.releaseStats}}</span>
+                        <span class="tool-card-copy">{{githubTools.home.releasesDescription}}</span>
+                        <span class="tool-link">{{common.actions.launchTool}} <md-icon>arrow_forward</md-icon></span>
                     </md-outlined-card>
                     <md-outlined-card class="tool-card" data-view="leaderboard" role="button" tabindex="0">
                         <span class="tool-icon material-symbols-outlined">leaderboard</span>
-                        <span class="tool-card-title">GitHub Leaderboard</span>
-                        <span class="tool-card-copy">Meet leading GitHub developers and instantly find a username's local rank.</span>
-                        <span class="tool-link">Explore Rankings <md-icon>arrow_forward</md-icon></span>
+                        <span class="tool-card-title">{{githubTools.home.leaderboardTitle}}</span>
+                        <span class="tool-card-copy">{{githubTools.home.leaderboardDescription}}</span>
+                        <span class="tool-link">{{common.actions.exploreRankings}} <md-icon>arrow_forward</md-icon></span>
                     </md-outlined-card>
                     <md-outlined-card class="tool-card" data-view="gitpatch" role="button" tabindex="0">
                         <span class="tool-icon material-symbols-outlined">difference</span>
-                        <span class="tool-card-title">Git Patch</span>
-                        <span class="tool-card-copy">Extract raw .patch files from GitHub commit URLs for git apply.</span>
-                        <span class="tool-link">Launch Tool <md-icon>arrow_forward</md-icon>
-            </span>
+                        <span class="tool-card-title">{{common.navigation.gitPatch}}</span>
+                        <span class="tool-card-copy">{{githubTools.home.patchDescription}}</span>
+                        <span class="tool-link">{{common.actions.launchTool}} <md-icon>arrow_forward</md-icon></span>
                     </md-outlined-card>
                 </div>
                 <div id="home-favorites-section" class="home-favorites hidden">
-                    <h3>Quick Access Favorites</h3>
+                    <h3>{{favorites.quickAccess}}</h3>
                     <div id="home-favorites-list" class="favorite-chips"></div>
                 </div>
                 <app-showcase-section id="app-showcase"></app-showcase-section>
             </section>
-            <section id="view-mapper" class="view-section" aria-label="Repo Mapper">
+            <section id="view-mapper" class="view-section" aria-label="{{githubTools.mapper.ariaLabel}}">
                 <div class="panel">
                     <form id="mapper-form" class="form-stack">
                         <div class="field-with-action">
-                            <md-outlined-text-field type="url" id="mapper-url" list="mapper-datalist" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field>
-                            <md-outlined-icon-button type="button" id="mapper-fav-btn" class="favorite-button" disabled toggle aria-label="Add favorite" aria-label-selected="Remove favorite">
+                            <md-outlined-text-field type="url" id="mapper-url" list="mapper-datalist" label="{{githubTools.shared.repositoryUrl}}" placeholder="{{githubTools.shared.repositoryUrlPlaceholder}}" autocomplete="url"></md-outlined-text-field>
+                            <md-outlined-icon-button type="button" id="mapper-fav-btn" class="favorite-button" disabled toggle aria-label="{{githubTools.shared.addFavorite}}" aria-label-selected="{{githubTools.shared.removeFavorite}}">
                                 <md-icon>star_border</md-icon>
                                 <md-icon slot="selected">star</md-icon>
                             </md-outlined-icon-button>
@@ -124,26 +121,26 @@
                         <div class="settings-row">
                             <md-text-button type="button" class="text-button token-settings-button" data-token-toggle="mapper" aria-expanded="false" aria-controls="mapper-token-panel">
                                 <md-icon slot="icon" class="token-settings-icon">settings</md-icon>
-                                <span id="mapper-token-label" class="token-settings-label">Token Settings</span>
+                                <span id="mapper-token-label" class="token-settings-label">{{githubTools.shared.tokenSettings}}</span>
                             </md-text-button>
-                            <md-outlined-segmented-button-set class="segmented" aria-label="Mapper output format">
-                                <md-outlined-segmented-button id="btn-format-ascii" data-format="ascii" selected label="ASCII">
+                            <md-outlined-segmented-button-set class="segmented" aria-label="{{githubTools.mapper.outputFormat}}">
+                                <md-outlined-segmented-button id="btn-format-ascii" data-format="ascii" selected label="{{githubTools.mapper.ascii}}">
                                     <md-icon slot="icon">account_tree</md-icon>
                                 </md-outlined-segmented-button>
-                                <md-outlined-segmented-button id="btn-format-paths" data-format="paths" label="Paths">
+                                <md-outlined-segmented-button id="btn-format-paths" data-format="paths" label="{{githubTools.mapper.paths}}">
                                     <md-icon slot="icon">route</md-icon>
                                 </md-outlined-segmented-button>
                             </md-outlined-segmented-button-set>
                         </div>
                         <div id="mapper-token-panel" class="token-field" aria-hidden="true">
                             <div class="token-field-content">
-                                <md-outlined-text-field id="mapper-token" type="password" label="Access Token (Optional)" placeholder="github_pat_..." autocomplete="off"></md-outlined-text-field>
+                                <md-outlined-text-field id="mapper-token" type="password" label="{{githubTools.shared.accessTokenOptional}}" placeholder="{{githubTools.shared.accessTokenPlaceholder}}" autocomplete="off"></md-outlined-text-field>
                             </div>
                         </div>
                         <div class="form-actions">
                             <md-filled-button type="submit" id="mapper-submit" class="primary-button">
                                 <md-icon slot="icon" data-icon>terminal</md-icon>
-                                <span data-label>Generate Map</span>
+                                <span data-label>{{githubTools.mapper.generateMap}}</span>
                             </md-filled-button>
                         </div>
                     </form>
@@ -155,24 +152,22 @@
                 <div id="mapper-result" class="result-stack hidden">
                     <div class="code-panel">
                         <div class="code-title output-title">
-              <span class="code-title-label">
-                <md-icon>description</md-icon>
-                <span>OUTPUT</span>
-              </span>
-                            <md-chip-set class="output-chip-set" aria-label="Output actions and statistics">
-                                <span class="output-stat" aria-label="Folder count">
+                            <span class="code-title-label">
+                                <md-icon>description</md-icon>
+                                <span>{{githubTools.mapper.output}}</span>
+                            </span>
+                            <md-chip-set class="output-chip-set" aria-label="{{githubTools.mapper.outputActions}}">
+                                <span class="output-stat" aria-label="{{githubTools.mapper.folderCount}}">
                                     <md-icon>folder</md-icon>
-                                    <span>
-                    <b id="mapper-stats-folders">0</b> Folders </span>
+                                    <span><b id="mapper-stats-folders">0</b> {{githubTools.mapper.folders}}</span>
                                 </span>
-                                <span class="output-stat" aria-label="File count">
+                                <span class="output-stat" aria-label="{{githubTools.mapper.fileCount}}">
                                     <md-icon>draft</md-icon>
-                                    <span>
-                    <b id="mapper-stats-files">0</b> Files </span>
+                                    <span><b id="mapper-stats-files">0</b> {{githubTools.mapper.files}}</span>
                                 </span>
                                 <md-assist-chip type="button" id="mapper-copy-btn" class="output-chip action-chip">
                                     <md-icon slot="icon" data-icon>content_copy</md-icon>
-                                    <span data-label>Copy Code</span>
+                                    <span data-label>{{githubTools.mapper.copyCode}}</span>
                                 </md-assist-chip>
                             </md-chip-set>
                         </div>
@@ -180,12 +175,12 @@
                     </div>
                 </div>
             </section>
-            <section id="view-releases" class="view-section" aria-label="Release Stats">
+            <section id="view-releases" class="view-section" aria-label="{{githubTools.releases.ariaLabel}}">
                 <div class="panel">
                     <form id="releases-form" class="form-stack">
                         <div class="field-with-action">
-                            <md-outlined-text-field type="url" id="releases-url" list="releases-datalist" label="Repository URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field>
-                            <md-outlined-icon-button type="button" id="releases-fav-btn" class="favorite-button" disabled toggle aria-label="Add favorite" aria-label-selected="Remove favorite">
+                            <md-outlined-text-field type="url" id="releases-url" list="releases-datalist" label="{{githubTools.shared.repositoryUrl}}" placeholder="{{githubTools.shared.repositoryUrlPlaceholder}}" autocomplete="url"></md-outlined-text-field>
+                            <md-outlined-icon-button type="button" id="releases-fav-btn" class="favorite-button" disabled toggle aria-label="{{githubTools.shared.addFavorite}}" aria-label-selected="{{githubTools.shared.removeFavorite}}">
                                 <md-icon>star_border</md-icon>
                                 <md-icon slot="selected">star</md-icon>
                             </md-outlined-icon-button>
@@ -193,18 +188,18 @@
                         <div class="settings-row">
                             <md-text-button type="button" class="text-button token-settings-button" data-token-toggle="releases" aria-expanded="false" aria-controls="releases-token-panel">
                                 <md-icon slot="icon" class="token-settings-icon">settings</md-icon>
-                                <span id="releases-token-label" class="token-settings-label">Token Settings</span>
+                                <span id="releases-token-label" class="token-settings-label">{{githubTools.shared.tokenSettings}}</span>
                             </md-text-button>
                         </div>
                         <div id="releases-token-panel" class="token-field" aria-hidden="true">
                             <div class="token-field-content">
-                                <md-outlined-text-field id="releases-token" type="password" label="Access Token (Optional)" placeholder="github_pat_..." autocomplete="off"></md-outlined-text-field>
+                                <md-outlined-text-field id="releases-token" type="password" label="{{githubTools.shared.accessTokenOptional}}" placeholder="{{githubTools.shared.accessTokenPlaceholder}}" autocomplete="off"></md-outlined-text-field>
                             </div>
                         </div>
                         <div class="form-actions">
                             <md-filled-button type="submit" id="releases-submit" class="primary-button">
                                 <md-icon slot="icon" data-icon>analytics</md-icon>
-                                <span data-label>Analyze</span>
+                                <span data-label>{{githubTools.releases.analyze}}</span>
                             </md-filled-button>
                         </div>
                     </form>
@@ -216,7 +211,7 @@
                 <div id="releases-result" class="release-grid hidden">
                     <div class="panel detail-panel">
                         <div>
-                            <p class="eyebrow">Selected Release</p>
+                            <p class="eyebrow">{{githubTools.releases.selectedRelease}}</p>
                             <h3 id="rel-detail-name"></h3>
                             <div class="release-meta">
                                 <md-icon>label</md-icon>
@@ -226,25 +221,25 @@
                             </div>
                         </div>
                         <div class="download-total">
-                            <span>Downloads</span>
+                            <span>{{githubTools.releases.downloads}}</span>
                             <strong id="rel-detail-downloads"></strong>
                         </div>
                         <div class="list-section">
-                            <p class="eyebrow">Assets</p>
+                            <p class="eyebrow">{{githubTools.releases.assets}}</p>
                             <div id="rel-assets-list" class="asset-list"></div>
                         </div>
                     </div>
                     <div class="panel detail-panel">
                         <div class="total-header">
                             <div>
-                                <p class="eyebrow">Total Project Downloads</p>
+                                <p class="eyebrow">{{githubTools.releases.totalProjectDownloads}}</p>
                                 <h3 id="rel-total-downloads"></h3>
                             </div>
                             <md-icon class="total-icon">download</md-icon>
                         </div>
                         <div class="list-section">
                             <div class="list-heading">
-                                <p class="eyebrow">All Releases</p>
+                                <p class="eyebrow">{{githubTools.releases.allReleases}}</p>
                                 <p id="rel-count"></p>
                             </div>
                             <div id="rel-list" class="release-list"></div>
@@ -252,14 +247,14 @@
                     </div>
                 </div>
             </section>
-            <section id="view-gitpatch" class="view-section" aria-label="Git Patch">
+            <section id="view-gitpatch" class="view-section" aria-label="{{githubTools.patch.ariaLabel}}">
                 <div class="panel">
                     <form id="patch-form" class="form-stack">
-                        <md-outlined-text-field type="url" id="patch-url" label="Commit URL" placeholder="https://github.com/..." autocomplete="url"></md-outlined-text-field>
+                        <md-outlined-text-field type="url" id="patch-url" label="{{githubTools.patch.commitUrl}}" placeholder="{{githubTools.patch.commitUrlPlaceholder}}" autocomplete="url"></md-outlined-text-field>
                         <div class="form-actions">
                             <md-filled-button type="submit" id="patch-submit" class="primary-button">
                                 <md-icon slot="icon" data-icon>difference</md-icon>
-                                <span data-label>Get Patch</span>
+                                <span data-label>{{githubTools.patch.getPatch}}</span>
                             </md-filled-button>
                         </div>
                     </form>
@@ -271,77 +266,75 @@
                 <div id="patch-result" class="result-stack hidden">
                     <div class="code-panel">
                         <div class="code-title output-title">
-              <span class="code-title-label">
-                <md-icon>integration_instructions</md-icon>
-                <span>PATCH</span>
-              </span>
-                            <md-chip-set class="output-chip-set" aria-label="Patch actions and status">
-                                <span class="output-stat" aria-label="Patch is ready to apply">
+                            <span class="code-title-label">
+                                <md-icon>integration_instructions</md-icon>
+                                <span>{{githubTools.patch.output}}</span>
+                            </span>
+                            <md-chip-set class="output-chip-set" aria-label="{{githubTools.patch.actionsAndStatus}}">
+                                <span class="output-stat" aria-label="{{githubTools.patch.readyLabel}}">
                                     <md-icon>check</md-icon>
-                                    <span>Ready to Apply</span>
+                                    <span>{{githubTools.patch.ready}}</span>
                                 </span>
                                 <md-assist-chip type="button" id="patch-download-btn" class="output-chip action-chip">
                                     <md-icon slot="icon">download</md-icon>
-                                    <span>Download</span>
+                                    <span>{{common.actions.download}}</span>
                                 </md-assist-chip>
                                 <md-assist-chip type="button" id="patch-copy-btn" class="output-chip action-chip">
                                     <md-icon slot="icon" data-icon>content_copy</md-icon>
-                                    <span data-label>Copy</span>
+                                    <span data-label>{{common.actions.copy}}</span>
                                 </md-assist-chip>
                             </md-chip-set>
                         </div>
-                        <pre>
-							<code id="patch-code"></code>
-						</pre>
+                        <pre><code id="patch-code"></code></pre>
                     </div>
                 </div>
             </section>
-            <section id="view-favorites" class="view-section" aria-label="Favorites">
+            <section id="view-favorites" class="view-section" aria-label="{{favorites.ariaLabel}}">
                 <div id="favorites-grid" class="favorites-grid"></div>
                 <div id="favorites-empty" class="empty-state hidden">
                     <div class="empty-state-icon">
                         <span class="material-symbols-outlined empty-star-icon" aria-hidden="true">star</span>
                     </div>
-                    <h2>No favorites yet</h2>
-                    <p>Star repositories in Repo Mapper or Release Stats to save them here.</p>
+                    <h2>{{favorites.emptyTitle}}</h2>
+                    <p>{{favorites.emptyDescription}}</p>
                 </div>
             </section>
             <section id="view-leaderboard" class="view-section" aria-labelledby="leaderboard-title">
                 <div class="leaderboard-hero">
                     <div>
-                        <p class="eyebrow">GitHub community</p>
-                        <h2 id="leaderboard-title">Discover developers making an impact.</h2>
-                        <p>Explore community rankings and search for any included GitHub username. Rankings are provided by committers.top.</p>
+                        <p class="eyebrow">{{leaderboard.hero.eyebrow}}</p>
+                        <h2 id="leaderboard-title">{{leaderboard.hero.title}}</h2>
+                        <p>{{leaderboard.hero.description}}</p>
                     </div>
                 </div>
                 <div class="leaderboard-controls panel">
-                    <div class="leaderboard-filters" aria-label="Filter leaderboard by country">
-						<div class="leaderboard-chip-scroller" tabindex="0" aria-label="Popular leaderboard locations">
-                        <md-chip-set id="leaderboard-country-filters">
-                            <md-filter-chip label="Global" data-country-slug="global" data-country-name="Global" selected></md-filter-chip>
-                            <md-filter-chip label="United States" data-country-slug="united_states" data-country-name="United States"></md-filter-chip>
-                            <md-filter-chip label="India" data-country-slug="india" data-country-name="India"></md-filter-chip>
-                            <md-filter-chip label="United Kingdom" data-country-slug="united_kingdom" data-country-name="United Kingdom"></md-filter-chip>
-                            <md-filter-chip label="Germany" data-country-slug="germany" data-country-name="Germany"></md-filter-chip>
-                            <md-filter-chip label="France" data-country-slug="france" data-country-name="France"></md-filter-chip>
-                            <md-filter-chip label="Canada" data-country-slug="canada" data-country-name="Canada"></md-filter-chip>
-                            <md-filter-chip label="Romania" data-country-slug="romania" data-country-name="Romania"></md-filter-chip>
-                        </md-chip-set>
-						</div>
+                    <div class="leaderboard-filters" aria-label="{{leaderboard.filters.ariaLabel}}">
+                        <div class="leaderboard-chip-scroller" tabindex="0" aria-label="{{leaderboard.filters.popularLocations}}">
+                            <md-chip-set id="leaderboard-country-filters">
+                                <md-filter-chip label="{{leaderboard.filters.global}}" data-country-slug="global" data-country-name="{{leaderboard.filters.global}}" selected></md-filter-chip>
+                                <md-filter-chip label="{{leaderboard.filters.unitedStates}}" data-country-slug="united_states" data-country-name="{{leaderboard.filters.unitedStates}}"></md-filter-chip>
+                                <md-filter-chip label="{{leaderboard.filters.india}}" data-country-slug="india" data-country-name="{{leaderboard.filters.india}}"></md-filter-chip>
+                                <md-filter-chip label="{{leaderboard.filters.unitedKingdom}}" data-country-slug="united_kingdom" data-country-name="{{leaderboard.filters.unitedKingdom}}"></md-filter-chip>
+                                <md-filter-chip label="{{leaderboard.filters.germany}}" data-country-slug="germany" data-country-name="{{leaderboard.filters.germany}}"></md-filter-chip>
+                                <md-filter-chip label="{{leaderboard.filters.france}}" data-country-slug="france" data-country-name="{{leaderboard.filters.france}}"></md-filter-chip>
+                                <md-filter-chip label="{{leaderboard.filters.canada}}" data-country-slug="canada" data-country-name="{{leaderboard.filters.canada}}"></md-filter-chip>
+                                <md-filter-chip label="{{leaderboard.filters.romania}}" data-country-slug="romania" data-country-name="{{leaderboard.filters.romania}}"></md-filter-chip>
+                            </md-chip-set>
+                        </div>
                         <md-outlined-button id="leaderboard-locate" type="button" class="secondary-button">
-                            <md-icon slot="icon">my_location</md-icon>Use my location
+                            <md-icon slot="icon">my_location</md-icon>{{leaderboard.location.useMyLocation}}
                         </md-outlined-button>
                     </div>
                 </div>
                 <div id="leaderboard-loading" class="leaderboard-loading" role="status">
-                    <md-circular-progress indeterminate aria-label="Loading leaderboard"></md-circular-progress>
-                    <span>Loading the latest community ranking…</span>
+                    <md-circular-progress indeterminate aria-label="{{leaderboard.ranking.loadingLabel}}"></md-circular-progress>
+                    <span>{{leaderboard.ranking.loading}}</span>
                 </div>
                 <div id="leaderboard-content" class="leaderboard-content hidden">
                     <div class="leaderboard-heading">
                         <div>
-                            <p class="eyebrow">Current ranking</p>
-                            <h3 id="leaderboard-country">Global</h3>
+                            <p class="eyebrow">{{leaderboard.ranking.current}}</p>
+                            <h3 id="leaderboard-country">{{leaderboard.ranking.defaultCountry}}</h3>
                         </div>
                         <div class="leaderboard-meta">
                             <span id="leaderboard-count"></span>
@@ -351,17 +344,17 @@
                     </div>
                     <div id="leaderboard-error" class="error-box hidden">
                         <md-icon>cloud_off</md-icon><span id="leaderboard-error-text"></span>
-                        <md-text-button id="leaderboard-retry" type="button" class="text-button">Retry</md-text-button>
+                        <md-text-button id="leaderboard-retry" type="button" class="text-button">{{common.actions.retry}}</md-text-button>
                     </div>
                     <div id="leaderboard-list" class="leaderboard-list" aria-live="polite"></div>
-					<nav id="leaderboard-pagination" class="leaderboard-pagination hidden" aria-label="Leaderboard pages">
-						<md-outlined-button id="leaderboard-previous" type="button"><md-icon slot="icon">chevron_left</md-icon>Previous</md-outlined-button>
-						<span id="leaderboard-page-status" aria-live="polite"></span>
-						<md-outlined-button id="leaderboard-next" type="button">Next<md-icon slot="icon">chevron_right</md-icon></md-outlined-button>
-					</nav>
+                    <nav id="leaderboard-pagination" class="leaderboard-pagination hidden" aria-label="{{leaderboard.ranking.paginationLabel}}">
+                        <md-outlined-button id="leaderboard-previous" type="button"><md-icon slot="icon">chevron_left</md-icon>{{common.actions.previous}}</md-outlined-button>
+                        <span id="leaderboard-page-status" aria-live="polite"></span>
+                        <md-outlined-button id="leaderboard-next" type="button">{{common.actions.next}}<md-icon slot="icon">chevron_right</md-icon></md-outlined-button>
+                    </nav>
                     <div id="leaderboard-empty" class="leaderboard-empty hidden">
                         <md-icon>person_search</md-icon>
-                        <h3>No ranking match</h3>
+                        <h3>{{leaderboard.ranking.noMatchTitle}}</h3>
                         <p id="leaderboard-empty-copy"></p>
                     </div>
                 </div>
