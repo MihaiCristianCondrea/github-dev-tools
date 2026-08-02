@@ -1,4 +1,11 @@
 import DataServices from "../../../app/DataServices";
+import {
+	formatDate,
+	formatEnglishPlural,
+	formatNumber,
+	localizeTemplate,
+	strings,
+} from "../../../core/localization/Localization";
 import type { AppShowcaseSection } from "../../app-showcase/presentation/AppShowcaseSection";
 import "../../app-showcase/presentation/AppShowcaseSection";
 import "../../../core/components/ParticleNetworkBackground";
@@ -25,16 +32,17 @@ type ThemePreference = "light" | "dark" | "system";
 
 const THEME_STORAGE_KEY = "github_tools_theme";
 const LEADERBOARD_PAGE_SIZE = 25;
+const DEFAULT_LEADERBOARD_SLUG = "global";
+const DEFAULT_LEADERBOARD_NAME = strings.leaderboard.ranking.defaultCountry;
 
 const VIEW_TITLES: Record<ViewId, string> = {
-	home: "Home",
-	favorites: "Favorites",
-	mapper: "Repo Mapper",
-	releases: "Release Stats",
-	gitpatch: "Git Patch",
-	leaderboard: "Leaderboard",
+	home: strings.common.navigation.home,
+	favorites: strings.common.navigation.favorites,
+	mapper: strings.common.navigation.repoMapper,
+	releases: strings.common.navigation.releaseStats,
+	gitpatch: strings.common.navigation.gitPatch,
+	leaderboard: strings.common.navigation.leaderboard,
 };
-
 
 type AppState = {
 	currentView: ViewId;
@@ -85,7 +93,7 @@ export default class GitHubToolsApp extends WebComponent {
 	};
 
 	constructor() {
-		super(html, css);
+		super(localizeTemplate(html), css);
 	}
 
 	get htmlTagName(): string {
@@ -232,7 +240,10 @@ export default class GitHubToolsApp extends WebComponent {
 		});
 		this.select("#leaderboard-locate")?.addEventListener("click", () => void this.useCurrentLocation());
 		this.select("#leaderboard-retry")?.addEventListener("click", () => {
-			void this.loadLeaderboard(this.state.leaderboard?.countrySlug ?? "global", this.state.leaderboard?.country ?? "Global");
+			void this.loadLeaderboard(
+				this.state.leaderboard?.countrySlug ?? DEFAULT_LEADERBOARD_SLUG,
+				this.state.leaderboard?.country ?? DEFAULT_LEADERBOARD_NAME,
+			);
 		});
 	}
 
@@ -250,7 +261,9 @@ export default class GitHubToolsApp extends WebComponent {
 		drawerLayer?.setAttribute("aria-hidden", String(!isOpen));
 
 		this.select("#drawer-open")?.setAttribute("aria-expanded", String(isOpen));
-		this.select("#drawer-open")?.setAttribute("aria-label", isOpen ? "Close menu" : "Open menu");
+		this.select("#drawer-open")?.setAttribute("aria-label", isOpen
+			? strings.common.navigation.closeMenu
+			: strings.common.navigation.openMenu);
 		const triggerIcon = this.select("#drawer-open-icon");
 		if (triggerIcon) triggerIcon.textContent = isOpen ? "menu_open" : "menu";
 	}
@@ -310,7 +323,9 @@ export default class GitHubToolsApp extends WebComponent {
 			this.select<HTMLInputElement>("#releases-url")!.value = url;
 			this.handleUrlInput("releases");
 		}
-		if (viewId === "leaderboard" && !this.state.leaderboard) void this.loadLeaderboard("global", "Global");
+		if (viewId === "leaderboard" && !this.state.leaderboard) {
+			void this.loadLeaderboard(DEFAULT_LEADERBOARD_SLUG, DEFAULT_LEADERBOARD_NAME);
+		}
 		if (closeDrawer) this.toggleDrawer(false);
 	}
 
@@ -341,7 +356,11 @@ export default class GitHubToolsApp extends WebComponent {
 		const pageCount = Math.max(1, Math.ceil(allUsers.length / LEADERBOARD_PAGE_SIZE));
 		this.leaderboardPage = Math.min(this.leaderboardPage, pageCount);
 		const start = (this.leaderboardPage - 1) * LEADERBOARD_PAGE_SIZE;
-		this.leaderboardView.renderUsers(allUsers.slice(start, start + LEADERBOARD_PAGE_SIZE), this.state.leaderboard.country, query.trim().length > 0);
+		this.leaderboardView.renderUsers(
+			allUsers.slice(start, start + LEADERBOARD_PAGE_SIZE),
+			this.state.leaderboard.country,
+			query.trim().length > 0,
+		);
 		this.leaderboardView.renderPagination(this.leaderboardPage, pageCount, allUsers.length);
 	}
 
@@ -429,7 +448,9 @@ export default class GitHubToolsApp extends WebComponent {
 		const active = !!parsed && this.isFavorite(parsed);
 		button.toggleAttribute("disabled", !parsed);
 		button.toggleAttribute("selected", active);
-		button.setAttribute("aria-label", active ? "Remove favorite" : "Add favorite");
+		button.setAttribute("aria-label", active
+			? strings.githubTools.shared.removeFavorite
+			: strings.githubTools.shared.addFavorite);
 	}
 
 	private toggleToken(view: "mapper" | "releases"): void {
@@ -440,7 +461,9 @@ export default class GitHubToolsApp extends WebComponent {
 		if (!button || !panel || !label) return;
 
 		const shouldShow = !panel.classList.contains("open");
-		const nextText = shouldShow ? "Hide Settings" : "Token Settings";
+		const nextText = shouldShow
+			? strings.githubTools.shared.hideSettings
+			: strings.githubTools.shared.tokenSettings;
 
 		panel.classList.toggle("open", shouldShow);
 		panel.setAttribute("aria-hidden", String(!shouldShow));
@@ -468,10 +491,10 @@ export default class GitHubToolsApp extends WebComponent {
 
 		this.hideError("mapper");
 		result?.classList.add("hidden");
-		const resetButton = this.setLoading("#mapper-submit", "Processing...", "progress_activity");
+		const resetButton = this.setLoading("#mapper-submit", strings.githubTools.shared.processing, "progress_activity");
 
 		if (!parsed) {
-			this.showError("mapper", "Invalid GitHub URL");
+			this.showError("mapper", strings.githubTools.shared.invalidGitHubUrl);
 			resetButton();
 			this.finishPendingAction("mapper");
 			return;
@@ -483,7 +506,7 @@ export default class GitHubToolsApp extends WebComponent {
 			this.state.mapper.outputs = {};
 			this.renderMapperOutput();
 			result?.classList.remove("hidden");
-			if (tree.truncated) this.showError("mapper", "Repo is massive, output was truncated by the GitHub API.");
+			if (tree.truncated) this.showError("mapper", strings.githubTools.mapper.truncated);
 		} catch (error) {
 			this.showError("mapper", this.errorMessage(error));
 		} finally {
@@ -498,8 +521,8 @@ export default class GitHubToolsApp extends WebComponent {
 		outputs[format] = result;
 
 		this.select("#mapper-code")!.textContent = result.output;
-		this.select("#mapper-stats-files")!.textContent = String(result.files);
-		this.select("#mapper-stats-folders")!.textContent = String(result.folders);
+		this.select("#mapper-stats-files")!.textContent = formatNumber(result.files);
+		this.select("#mapper-stats-folders")!.textContent = formatNumber(result.folders);
 	}
 
 	private async handleReleasesSubmit(event: SubmitEvent): Promise<void> {
@@ -512,10 +535,10 @@ export default class GitHubToolsApp extends WebComponent {
 
 		this.hideError("releases");
 		result?.classList.add("hidden");
-		const resetButton = this.setLoading("#releases-submit", "Processing...", "progress_activity");
+		const resetButton = this.setLoading("#releases-submit", strings.githubTools.shared.processing, "progress_activity");
 
 		if (!parsed) {
-			this.showError("releases", "Invalid GitHub URL");
+			this.showError("releases", strings.githubTools.shared.invalidGitHubUrl);
 			resetButton();
 			this.finishPendingAction("releases");
 			return;
@@ -547,17 +570,23 @@ export default class GitHubToolsApp extends WebComponent {
 
 		this.select("#rel-detail-name")!.textContent = active.name;
 		this.select("#rel-detail-tag")!.textContent = active.tagName;
-		this.select("#rel-detail-date")!.textContent = active.date ? new Date(active.date).toLocaleDateString() : "Unpublished";
-		this.select("#rel-detail-downloads")!.textContent = active.downloads.toLocaleString();
-		this.select("#rel-total-downloads")!.textContent = total.toLocaleString();
-		this.select("#rel-count")!.textContent = `${releases.length} Found`;
+		this.select("#rel-detail-date")!.textContent = active.date
+			? formatDate(new Date(active.date))
+			: strings.githubTools.releases.unpublished;
+		this.select("#rel-detail-downloads")!.textContent = formatNumber(active.downloads);
+		this.select("#rel-total-downloads")!.textContent = formatNumber(total);
+		this.select("#rel-count")!.textContent = formatEnglishPlural(
+			releases.length,
+			strings.githubTools.releases.found_one,
+			strings.githubTools.releases.found_other,
+		);
 
 		const assetList = this.select("#rel-assets-list")!;
 		assetList.textContent = "";
 		if (active.assets.length === 0) {
 			const empty = document.createElement("div");
 			empty.className = "empty-list";
-			empty.textContent = "No assets.";
+			empty.textContent = strings.githubTools.releases.noAssets;
 			assetList.append(empty);
 		} else {
 			active.assets.forEach((asset) => assetList.append(this.createAssetRow(asset, maxAssetDownloads)));
@@ -587,7 +616,7 @@ export default class GitHubToolsApp extends WebComponent {
 		row.className = "asset-row";
 		row.innerHTML = `<div class="asset-line"><strong></strong><span></span></div><div class="bar-track"><div class="bar-fill"></div></div>`;
 		row.querySelector("strong")!.textContent = asset.name;
-		row.querySelector("span")!.textContent = asset.downloads.toLocaleString();
+		row.querySelector("span")!.textContent = formatNumber(asset.downloads);
 		const width = maxDownloads > 0 ? (asset.downloads / maxDownloads) * 100 : 0;
 		(row.querySelector(".bar-fill") as HTMLElement).style.width = `${width}%`;
 		return row;
@@ -602,7 +631,7 @@ export default class GitHubToolsApp extends WebComponent {
 		button.className = `release-button${selected ? " selected" : ""}`;
 		button.innerHTML = `<div class="release-button-header"><span class="release-button-title"></span><span class="release-button-count"></span></div><div class="bar-track"><div class="bar-fill"></div></div>`;
 		button.querySelector(".release-button-title")!.textContent = release.name;
-		button.querySelector(".release-button-count")!.textContent = release.downloads.toLocaleString();
+		button.querySelector(".release-button-count")!.textContent = formatNumber(release.downloads);
 		const width = maxDownloads > 0 ? (release.downloads / maxDownloads) * 100 : 0;
 		(button.querySelector(".bar-fill") as HTMLElement).style.width = `${width}%`;
 		button.addEventListener("click", () => {
@@ -622,10 +651,10 @@ export default class GitHubToolsApp extends WebComponent {
 
 		this.hideError("patch");
 		result?.classList.add("hidden");
-		const resetButton = this.setLoading("#patch-submit", "Fetching...", "progress_activity");
+		const resetButton = this.setLoading("#patch-submit", strings.githubTools.patch.fetching, "progress_activity");
 
 		if (!parsed) {
-			this.showError("patch", "Invalid Commit URL");
+			this.showError("patch", strings.githubTools.patch.invalidCommitUrl);
 			resetButton();
 			this.finishPendingAction("patch");
 			return;
@@ -654,7 +683,7 @@ export default class GitHubToolsApp extends WebComponent {
 	private async copyTextWithFeedback(text: string, buttonSelector: string): Promise<void> {
 		if (!text) return;
 		await navigator.clipboard.writeText(text);
-		const resetButton = this.setButtonState(buttonSelector, "Copied", "check_circle", false, "copied");
+		const resetButton = this.setButtonState(buttonSelector, strings.common.actions.copied, "check_circle", false, "copied");
 		window.setTimeout(resetButton, 2000);
 	}
 
@@ -695,7 +724,7 @@ export default class GitHubToolsApp extends WebComponent {
 		progress.setAttribute("slot", "icon");
 		progress.setAttribute("data-icon", "");
 		progress.setAttribute("indeterminate", "");
-		progress.setAttribute("aria-label", "Loading");
+		progress.setAttribute("aria-label", strings.common.actions.loading);
 		return this.setButtonState(buttonSelector, label, progress, true, "is-loading");
 	}
 
@@ -736,6 +765,6 @@ export default class GitHubToolsApp extends WebComponent {
 	}
 
 	private errorMessage(error: unknown): string {
-		return error instanceof Error ? error.message : "Something went wrong";
+		return error instanceof Error ? error.message : strings.githubTools.shared.somethingWentWrong;
 	}
 }

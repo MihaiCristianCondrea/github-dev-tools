@@ -1,3 +1,4 @@
+import { strings } from "../../../core/localization/Localization";
 import type { AppItem } from "../domain/models/AppItem";
 import type { GetPromotedAppsUseCase } from "../domain/usecases/GetPromotedAppsUseCase";
 import type { AppCard } from "./AppCard";
@@ -41,14 +42,14 @@ export class AppShowcaseSection extends HTMLElement {
 		this.innerHTML = `
 			<section class="showcase-section" aria-labelledby="showcase-title">
 				${this.renderHeader()}
-				<div class="showcase-loading"><md-circular-progress indeterminate aria-label="Loading apps"></md-circular-progress><span>Loading apps…</span></div>
+				<div class="showcase-loading"><md-circular-progress indeterminate aria-label="${strings.common.appShowcase.loadingLabel}"></md-circular-progress><span>${strings.common.appShowcase.loading}</span></div>
 			</section>
 		`;
 	}
 
 	private renderApps(apps: AppItem[]): void {
 		if (apps.length === 0) {
-			this.renderError("No apps are available right now.");
+			this.renderError(strings.common.appShowcase.empty);
 			return;
 		}
 
@@ -71,16 +72,16 @@ export class AppShowcaseSection extends HTMLElement {
 	private renderHeader(): string {
 		return `
 			<div class="section-heading">
-				<h2 id="showcase-title">More apps from Mihai-Cristian</h2>
-				<md-outlined-button class="view-all-link" href="https://play.google.com/store/apps/dev?id=5390214922640123642" target="_blank" aria-label="View all apps on Google Play">
+				<h2 id="showcase-title">${strings.common.appShowcase.title}</h2>
+				<md-outlined-button class="view-all-link" href="https://play.google.com/store/apps/dev?id=5390214922640123642" target="_blank" aria-label="${strings.common.appShowcase.viewAllLabel}">
 					<md-icon slot="icon">open_in_new</md-icon>
-					View all apps
+					${strings.common.appShowcase.viewAll}
 				</md-outlined-button>
 			</div>
 		`;
 	}
 
-	private renderError(message = "Could not load app recommendations. Please try again later."): void {
+	private renderError(message = strings.common.appShowcase.error): void {
 		this.innerHTML = `
 			<section class="showcase-section" aria-labelledby="showcase-title">
 				${this.renderHeader()}

@@ -1,0 +1,75 @@
+{
+  "home": {
+    "eyebrow": "GitHub developer utilities",
+    "title": "Map repositories, inspect releases, and extract patches.",
+    "description": "Fast browser-native tools for public GitHub repositories, with optional token support for higher API limits.",
+    "mapperDescription": "Generate ASCII directory trees or plain path lists from any public repository.",
+    "releasesDescription": "Visualize download counts and asset performance for GitHub releases.",
+    "leaderboardTitle": "GitHub Leaderboard",
+    "leaderboardDescription": "Meet leading GitHub developers and instantly find a username's local rank.",
+    "patchDescription": "Extract raw .patch files from GitHub commit URLs for git apply."
+  },
+  "shared": {
+    "repositoryUrl": "Repository URL",
+    "repositoryUrlPlaceholder": "https://github.com/...",
+    "addFavorite": "Add favorite",
+    "removeFavorite": "Remove favorite",
+    "tokenSettings": "Token Settings",
+    "hideSettings": "Hide Settings",
+    "accessTokenOptional": "Access Token (Optional)",
+    "accessTokenPlaceholder": "github_pat_...",
+    "processing": "Processing...",
+    "invalidGitHubUrl": "Invalid GitHub URL",
+    "somethingWentWrong": "Something went wrong"
+  },
+  "mapper": {
+    "ariaLabel": "Repo Mapper",
+    "outputFormat": "Mapper output format",
+    "ascii": "ASCII",
+    "paths": "Paths",
+    "generateMap": "Generate Map",
+    "output": "OUTPUT",
+    "outputActions": "Output actions and statistics",
+    "folderCount": "Folder count",
+    "fileCount": "File count",
+    "folders": "Folders",
+    "files": "Files",
+    "copyCode": "Copy Code",
+    "truncated": "Repo is massive, output was truncated by the GitHub API."
+  },
+  "releases": {
+    "ariaLabel": "Release Stats",
+    "analyze": "Analyze",
+    "selectedRelease": "Selected Release",
+    "downloads": "Downloads",
+    "assets": "Assets",
+    "totalProjectDownloads": "Total Project Downloads",
+    "allReleases": "All Releases",
+    "unpublished": "Unpublished",
+    "found_one": "{count} Found",
+    "found_other": "{count} Found",
+    "noAssets": "No assets."
+  },
+  "patch": {
+    "ariaLabel": "Git Patch",
+    "commitUrl": "Commit URL",
+    "commitUrlPlaceholder": "https://github.com/...",
+    "getPatch": "Get Patch",
+    "fetching": "Fetching...",
+    "invalidCommitUrl": "Invalid Commit URL",
+    "output": "PATCH",
+    "actionsAndStatus": "Patch actions and status",
+    "readyLabel": "Patch is ready to apply",
+    "ready": "Ready to Apply"
+  },
+  "errors": {
+    "repositoryNotFound": "Repo not found",
+    "treeFetchFailed": "Failed to fetch tree",
+    "noReleases": "No releases found",
+    "patchFetchFailed": "Failed to fetch patch",
+    "tokenRejected": "GitHub rejected the access token. Check that it is valid and has not expired.",
+    "accessDenied": "GitHub denied access. Check the token's repository access, permissions, organization approval, and SSO authorization.",
+    "privateRepositoryHint": "{message}. If this is private, provide a token with access to this repository.",
+    "apiError": "GitHub API error ({status})"
+  }
+}

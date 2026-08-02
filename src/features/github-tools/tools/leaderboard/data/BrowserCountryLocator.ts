@@ -1,3 +1,5 @@
+import { activeLocale, strings } from "../../../../../core/localization/Localization";
+
 export type LocatedCountry = { name: string; slug: string };
 
 type ReverseGeocodeDto = { countryName?: unknown };
@@ -12,19 +14,19 @@ const countrySlug = (name: string): string => name
 
 export class BrowserCountryLocator {
 	async locate(): Promise<LocatedCountry> {
-		if (!navigator.geolocation) throw new Error("Location is not supported by this browser.");
+		if (!navigator.geolocation) throw new Error(strings.leaderboard.location.notSupported);
 		const position = await new Promise<GeolocationPosition>((resolve, reject) =>
 			navigator.geolocation.getCurrentPosition(resolve, reject, { enableHighAccuracy: false, timeout: 10000, maximumAge: 3_600_000 })
 		);
 		const query = new URLSearchParams({
 			latitude: String(position.coords.latitude),
 			longitude: String(position.coords.longitude),
-			localityLanguage: "en",
+			localityLanguage: activeLocale,
 		});
 		const response = await fetch(`https://api.bigdatacloud.net/data/reverse-geocode-client?${query}`);
-		if (!response.ok) throw new Error("We could not identify your country.");
+		if (!response.ok) throw new Error(strings.leaderboard.location.countryUnknown);
 		const data = await response.json() as ReverseGeocodeDto;
-		if (typeof data.countryName !== "string" || !data.countryName.trim()) throw new Error("We could not identify your country.");
+		if (typeof data.countryName !== "string" || !data.countryName.trim()) throw new Error(strings.leaderboard.location.countryUnknown);
 		const name = data.countryName.trim();
 		return { name, slug: countrySlug(name) };
 	}

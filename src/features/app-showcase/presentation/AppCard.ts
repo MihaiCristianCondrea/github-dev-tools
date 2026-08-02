@@ -1,3 +1,4 @@
+import { formatMessage, strings } from "../../../core/localization/Localization";
 import type { AppItem } from "../domain/models/AppItem";
 
 export class AppCard extends HTMLElement {
@@ -9,6 +10,7 @@ export class AppCard extends HTMLElement {
 		const icon = app.iconUrl
 			? `<img src="${this.escapeAttribute(app.iconUrl)}" alt="" loading="lazy" />`
 			: "<md-icon class=\"app-icon-placeholder\">apps</md-icon>";
+		const openLabel = formatMessage(strings.common.appShowcase.openOnGooglePlay, { appName: app.name });
 
 		// Material buttons support link-button attributes; keep actions as a single interactive element.
 		this.innerHTML = `
@@ -23,10 +25,10 @@ export class AppCard extends HTMLElement {
 					class="play-link"
 					href="${this.escapeAttribute(app.storeUrl)}"
 					target="_blank"
-					aria-label="Open ${this.escapeAttribute(app.name)} on Google Play"
+					aria-label="${this.escapeAttribute(openLabel)}"
 				>
 					<md-icon slot="icon">store</md-icon>
-					Google Play
+					${strings.common.appShowcase.googlePlay}
 				</md-outlined-button>
 			</md-outlined-card>
 		`;
