@@ -1,4 +1,4 @@
-export type ViewId = "home" | "favorites" | "mapper" | "releases" | "gitpatch";
+export type ViewId = "home" | "favorites" | "mapper" | "releases" | "gitpatch" | "leaderboard";
 
 const defaultViewId: ViewId = "home";
 
@@ -8,6 +8,7 @@ const routeToViewId = {
 	"release-stats": "releases",
 	"git-patch": "gitpatch",
 	"favorites": "favorites",
+	"leaderboard": "leaderboard",
 } as const;
 
 const viewIdToRoute = {
@@ -16,6 +17,7 @@ const viewIdToRoute = {
 	releases: "release-stats",
 	gitpatch: "git-patch",
 	favorites: "favorites",
+	leaderboard: "leaderboard",
 } as const;
 
 export const normalizeHashRoute = (hash: string): string => hash.replace(/^#/, "").trim().toLowerCase();
