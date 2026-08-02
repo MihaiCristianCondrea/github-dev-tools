@@ -313,8 +313,6 @@ export default class GitHubToolsApp extends WebComponent {
 		activeNav?.querySelector("md-icon, .material-symbols-outlined")?.classList.add("filled-icon");
 		const topbarTitle = this.select("#topbar-title");
 		if (topbarTitle) topbarTitle.textContent = VIEW_TITLES[viewId];
-		this.select("#leaderboard-search")?.classList.toggle("visible", viewId === "leaderboard");
-
 		if (url && viewId === "mapper") {
 			this.select<HTMLInputElement>("#mapper-url")!.value = url;
 			this.handleUrlInput("mapper");
