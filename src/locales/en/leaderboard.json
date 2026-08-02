@@ -10,6 +10,7 @@
   },
   "filters": {
     "ariaLabel": "Filter leaderboard by country",
+    "heading": "Country filters",
     "popularLocations": "Popular leaderboard locations",
     "global": "Global",
     "unitedStates": "United States",

@@ -145,8 +145,6 @@ particle-network-background { position: fixed; inset: 0; z-index: 0; pointer-eve
 .topbar { position: sticky; top: 0; z-index: 30; padding: 0 16px; justify-content: space-between; border-bottom: 1px solid var(--border-color); background: var(--bg-color); }
 .topbar-title { display: flex; align-items: center; gap: 16px; }
 .topbar h1 { font-size: 22px; }
-.topbar-leaderboard-search { display: none; width: min(420px, 48vw); }
-.topbar-leaderboard-search.visible { display: block; }
 .content { min-height: calc(100vh - 64px); padding: 24px 16px 48px; }
 .content-inner { max-width: 1024px; margin: 0 auto; }
 .view-section { display: none; animation: fade-in .35s ease-out; }
@@ -236,8 +234,11 @@ particle-network-background { position: fixed; inset: 0; z-index: 0; pointer-eve
 .leaderboard-hero { display: grid; grid-template-columns: minmax(0, 1fr) auto; align-items: center; gap: 32px; padding: 42px 0 30px; }
 .leaderboard-hero h2 { max-width: 720px; margin: 0; font-size: clamp(34px, 6vw, 60px); line-height: 1.02; letter-spacing: -.045em; }
 .leaderboard-hero p:not(.eyebrow) { max-width: 670px; margin: 18px 0 0; color: var(--muted-text); font-size: 17px; line-height: 1.6; }
-.leaderboard-controls { display: grid; gap: 20px; }
-.leaderboard-filters { display: flex; align-items: center; gap: 16px; }
+.leaderboard-controls { display: grid; gap: 24px; padding-block: 6px 10px; }
+.leaderboard-search-actions { display: grid; grid-template-columns: minmax(0, 560px) auto; align-items: center; gap: 12px; }
+.leaderboard-search-actions md-outlined-text-field { width: 100%; }
+.leaderboard-filters { display: grid; gap: 10px; }
+.leaderboard-filter-label { margin: 0; color: var(--muted-text); font-size: 13px; font-weight: 600; letter-spacing: .02em; }
 .leaderboard-chip-scroller { min-width: 0; flex: 1; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
 .leaderboard-filters md-chip-set { display: flex; width: max-content; }
 .leaderboard-loading { min-height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; color: var(--muted-text); }
@@ -268,8 +269,8 @@ particle-network-background { position: fixed; inset: 0; z-index: 0; pointer-eve
 @media (max-width: 700px) {
 	.topbar { gap: 10px; }
 	.topbar-title { gap: 4px; }
-	.topbar-leaderboard-search { width: min(58vw, 300px); }
-	.leaderboard-filters { align-items: flex-start; flex-direction: column; }
+	.leaderboard-search-actions { grid-template-columns: 1fr; align-items: stretch; }
+	.leaderboard-search-actions md-outlined-button { justify-self: start; }
 	.leaderboard-heading { align-items: flex-start; flex-direction: column; }
 	.leaderboard-meta { flex-wrap: wrap; }
 	.leaderboard-row { grid-template-columns: 48px 42px minmax(0, 1fr); gap: 10px; padding: 10px 12px; }
