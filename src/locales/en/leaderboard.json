@@ -1,0 +1,53 @@
+{
+  "hero": {
+    "eyebrow": "GitHub community",
+    "title": "Discover developers making an impact.",
+    "description": "Explore community rankings and search for any included GitHub username. Rankings are provided by committers.top."
+  },
+  "search": {
+    "label": "Search leaderboard",
+    "placeholder": "GitHub username"
+  },
+  "filters": {
+    "ariaLabel": "Filter leaderboard by country",
+    "popularLocations": "Popular leaderboard locations",
+    "global": "Global",
+    "unitedStates": "United States",
+    "india": "India",
+    "unitedKingdom": "United Kingdom",
+    "germany": "Germany",
+    "france": "France",
+    "canada": "Canada",
+    "romania": "Romania"
+  },
+  "location": {
+    "useMyLocation": "Use my location",
+    "notSupported": "Location is not supported by this browser.",
+    "countryUnknown": "We could not identify your country."
+  },
+  "ranking": {
+    "loadingLabel": "Loading leaderboard",
+    "loading": "Loading the latest community ranking…",
+    "current": "Current ranking",
+    "defaultCountry": "Global",
+    "rankedDevelopers_one": "{count} ranked developer",
+    "rankedDevelopers_other": "{count} ranked developers",
+    "updated": "Updated {date}",
+    "latestAvailable": "Latest available ranking",
+    "noMatchTitle": "No ranking match",
+    "usernameNotIncluded": "This username is not included in the current {country} leaderboard.",
+    "openProfile": "Open {username} on GitHub, ranked {rank} in {country}",
+    "position": "{ordinal} in {country}",
+    "paginationLabel": "Leaderboard pages",
+    "pageStatus": "Page {page} of {pageCount}"
+  },
+  "errors": {
+    "requestStatus": "Leaderboard request failed with status {status}.",
+    "htmlResponse": "Leaderboard source returned an HTML error page.",
+    "invalidRanking": "Leaderboard source returned an invalid ranking.",
+    "requestFailed": "The leaderboard request failed.",
+    "countryRequired": "A valid country is required.",
+    "unavailable": "The {country} leaderboard is not available right now.",
+    "noUsers": "The leaderboard returned no ranked users."
+  }
+}
