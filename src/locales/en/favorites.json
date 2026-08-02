@@ -1,0 +1,10 @@
+{
+  "quickAccess": "Quick Access Favorites",
+  "ariaLabel": "Favorites",
+  "emptyTitle": "No favorites yet",
+  "emptyDescription": "Star repositories in Repo Mapper or Release Stats to save them here.",
+  "seeAll": "See all",
+  "removeRepository": "Remove {repository} from favorites",
+  "map": "Map",
+  "stats": "Stats"
+}
