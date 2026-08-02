@@ -1,3 +1,4 @@
+import { formatMessage, strings } from "../../../../core/localization/Localization";
 import type { CommitRef, RepositoryRef } from "../models/Repository";
 import type { PatchFile } from "../../tools/git-patch/domain/PatchFile";
 import type { ReleaseStats } from "../../tools/release-stats/domain/ReleaseStats";
@@ -36,12 +37,12 @@ export default class GitHubRepositoryClient {
 		const repoData = await this.fetchJson<GithubRepoResponse>(
 			`https://api.github.com/repos/${repository.owner}/${repository.repo}`,
 			headers,
-			"Repo not found"
+			strings.githubTools.errors.repositoryNotFound
 		);
 		const treeData = await this.fetchJson<GithubTreeResponse>(
 			`https://api.github.com/repos/${repository.owner}/${repository.repo}/git/trees/${encodeURIComponent(repoData.default_branch)}?recursive=1`,
 			headers,
-			"Failed to fetch tree"
+			strings.githubTools.errors.treeFetchFailed
 		);
 		return { items: treeData.tree ?? [], truncated: treeData.truncated ?? false };
 	}
@@ -50,9 +51,9 @@ export default class GitHubRepositoryClient {
 		const releases = await this.fetchJson<GithubReleaseResponse[]>(
 			`https://api.github.com/repos/${repository.owner}/${repository.repo}/releases?per_page=100`,
 			this.githubHeaders(token),
-			"Repo not found"
+			strings.githubTools.errors.repositoryNotFound
 		);
-		if (releases.length === 0) throw new Error("No releases found");
+		if (releases.length === 0) throw new Error(strings.githubTools.errors.noReleases);
 
 		let total = 0;
 		const processed = releases.map((release) => {
@@ -76,7 +77,7 @@ export default class GitHubRepositoryClient {
 		const response = await fetch(`https://api.github.com/repos/${commit.owner}/${commit.repo}/commits/${commit.sha}`, {
 			headers: { Accept: "application/vnd.github.v3.patch" },
 		});
-		if (!response.ok) throw new Error("Failed to fetch patch");
+		if (!response.ok) throw new Error(strings.githubTools.errors.patchFetchFailed);
 		return {
 			content: await response.text(),
 			filename: `${commit.repo}-${commit.sha.substring(0, 7)}.patch`,
@@ -114,10 +115,10 @@ export default class GitHubRepositoryClient {
 	}
 
 	private githubErrorMessage(status: number, notFoundMessage: string): string {
-		if (status === 401) return "GitHub rejected the access token. Check that it is valid and has not expired.";
-		if (status === 403) return "GitHub denied access. Check the token's repository access, permissions, organization approval, and SSO authorization.";
-		if (status === 404) return `${notFoundMessage}. If this is private, provide a token with access to this repository.`;
-		return `GitHub API error (${status})`;
+		if (status === 401) return strings.githubTools.errors.tokenRejected;
+		if (status === 403) return strings.githubTools.errors.accessDenied;
+		if (status === 404) return formatMessage(strings.githubTools.errors.privateRepositoryHint, { message: notFoundMessage });
+		return formatMessage(strings.githubTools.errors.apiError, { status });
 	}
 
 	private githubHeaders(token: string): Record<string, string> {
