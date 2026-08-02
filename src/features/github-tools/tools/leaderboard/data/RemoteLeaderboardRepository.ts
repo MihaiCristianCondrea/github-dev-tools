@@ -7,6 +7,29 @@ type CommittersRankingDto = {
 };
 
 const BASE_URL = "https://committers.top/rank_only";
+const CORS_PROXY_URL = "https://api.allorigins.win/raw?url=";
+
+const fetchRanking = async (url: string): Promise<Response> => {
+	// committers.top does not consistently send CORS headers, so use a CORS-enabled
+	// passthrough first and retain the source URL as a fallback for compatible clients.
+	const urls = [`${CORS_PROXY_URL}${encodeURIComponent(url)}`, url];
+	let lastError: unknown;
+
+	for (const requestUrl of urls) {
+		try {
+			const response = await fetch(requestUrl, {
+				headers: { Accept: "application/json" },
+				cache: "no-store",
+			});
+			if (response.ok) return response;
+			lastError = new Error(`Leaderboard request failed with status ${response.status}.`);
+		} catch (error) {
+			lastError = error;
+		}
+	}
+
+	throw lastError ?? new Error("The leaderboard request failed.");
+};
 
 const parseDate = (value: unknown): Date | null => {
 	if (typeof value !== "string") return null;
@@ -19,11 +42,12 @@ export class RemoteLeaderboardRepository implements LeaderboardRepository {
 		const safeSlug = countrySlug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
 		if (!safeSlug) throw new Error("A valid country is required.");
 
-		const response = await fetch(`${BASE_URL}/${safeSlug}.json`, {
-			headers: { Accept: "application/json" },
-			cache: "no-store",
-		});
-		if (!response.ok) throw new Error(`The ${countryName ?? safeSlug} leaderboard is not available right now.`);
+		let response: Response;
+		try {
+			response = await fetchRanking(`${BASE_URL}/${safeSlug}.json`);
+		} catch {
+			throw new Error(`The ${countryName ?? safeSlug} leaderboard is not available right now.`);
+		}
 
 		const dto = await response.json() as CommittersRankingDto;
 		const usernames = Array.isArray(dto.user)
