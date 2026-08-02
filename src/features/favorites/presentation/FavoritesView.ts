@@ -1,3 +1,4 @@
+import { formatMessage, strings } from "../../../core/localization/Localization";
 import type { FavoriteRepository } from "../domain/models/FavoriteRepository";
 
 export type FavoriteActions = {
@@ -39,7 +40,7 @@ export class FavoritesView {
 		seeAll.className = "favorite-chip";
 		const icon = createIcon("arrow_forward");
 		icon.setAttribute("slot", "icon");
-		seeAll.append(icon, document.createTextNode("See all"));
+		seeAll.append(icon, document.createTextNode(strings.favorites.seeAll));
 		seeAll.addEventListener("click", openAll);
 		list.append(seeAll);
 	}
@@ -59,7 +60,9 @@ export class FavoritesView {
 		titleWrap.append(owner, title);
 		const remove = document.createElement("md-outlined-icon-button");
 		remove.setAttribute("type", "button");
-		remove.setAttribute("aria-label", `Remove ${favorite.owner}/${favorite.repo} from favorites`);
+		remove.setAttribute("aria-label", formatMessage(strings.favorites.removeRepository, {
+			repository: `${favorite.owner}/${favorite.repo}`,
+		}));
 		const removeIcon = createIcon("star");
 		removeIcon.classList.add("filled-icon");
 		remove.append(removeIcon);
@@ -69,8 +72,8 @@ export class FavoritesView {
 		const actionBar = document.createElement("div");
 		actionBar.className = "favorite-card-actions";
 		actionBar.append(
-			this.createAction("terminal", "Map", () => actions.openMapper(favorite)),
-			this.createAction("bar_chart", "Stats", () => actions.openStats(favorite))
+			this.createAction("terminal", strings.favorites.map, () => actions.openMapper(favorite)),
+			this.createAction("bar_chart", strings.favorites.stats, () => actions.openStats(favorite))
 		);
 		card.append(header, actionBar);
 		return card;
