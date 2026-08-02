@@ -1,7 +1,7 @@
 {
   "name": "GitHub Developer Tools",
   "short_name": "GitHub Tools",
-  "description": "Browser-native utilities for mapping GitHub repositories, inspecting release downloads, and extracting commit patches.",
+  "description": "Map GitHub repositories, inspect release downloads, and extract commit patches with fast browser-native developer utilities.",
   "start_url": "./",
   "scope": "./",
   "display": "standalone",

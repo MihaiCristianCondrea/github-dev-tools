@@ -10,7 +10,7 @@ permissions:
 
 jobs:
   build-and-test:
-    name: Build and test
+    name: Validate, build, and test
     runs-on: ubuntu-latest
 
     steps:
@@ -26,8 +26,5 @@ jobs:
       - name: Install dependencies
         run: npm ci
 
-      - name: Build site
-        run: npm run build
-
-      - name: Run tests
-        run: npm test
+      - name: Validate locales, build, and test
+        run: npm run check

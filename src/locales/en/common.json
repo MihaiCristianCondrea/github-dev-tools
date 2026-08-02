@@ -1,6 +1,8 @@
 {
   "app": {
     "title": "GitHub Developer Tools",
+    "shortTitle": "GitHub Tools",
+    "description": "Map GitHub repositories, inspect release downloads, and extract commit patches with fast browser-native developer utilities.",
     "consoleStartupError": "Failed to start GitHub Tools",
     "rootMissing": "#app root not found",
     "loading": "Loading GitHub Tools…",

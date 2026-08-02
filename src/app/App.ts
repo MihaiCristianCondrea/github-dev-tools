@@ -12,6 +12,7 @@ export const startApp = async (): Promise<void> => {
 	"use strict";
 
 	document.documentElement.lang = activeLocale;
+	applyDocumentMetadata();
 	renderLoadingState();
 
 	try {
@@ -23,6 +24,12 @@ export const startApp = async (): Promise<void> => {
 		console.error(strings.common.app.consoleStartupError, error);
 		renderStartupError();
 	}
+};
+
+const applyDocumentMetadata = (): void => {
+	document.title = strings.common.app.title;
+	document.querySelector<HTMLMetaElement>('meta[name="description"]')
+		?.setAttribute("content", strings.common.app.description);
 };
 
 const onApplicationStart = (): void => {

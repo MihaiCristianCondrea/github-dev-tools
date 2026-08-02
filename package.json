@@ -6,7 +6,9 @@
 	"scripts": {
 		"test": "node --test --experimental-strip-types \"tests/**/*.test.ts\"",
 		"dev": "vite",
+		"validate:locales": "node scripts/validate-locales.mjs",
 		"build": "tsc && vite build",
+		"check": "npm run validate:locales && npm run build && npm test",
 		"preview": "vite preview"
 	},
 	"devDependencies": {
