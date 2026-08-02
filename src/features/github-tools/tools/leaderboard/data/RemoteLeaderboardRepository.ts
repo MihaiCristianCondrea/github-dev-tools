@@ -1,3 +1,4 @@
+import { formatMessage, strings } from "../../../../../core/localization/Localization";
 import type { Leaderboard } from "../domain/Leaderboard";
 import type { LeaderboardRepository } from "../domain/LeaderboardRepository";
 
@@ -30,7 +31,7 @@ const fetchRanking = async (url: string): Promise<CommittersRankingDto> => {
 				cache: "no-store",
 			});
 			if (!response.ok) {
-				lastError = new Error(`Leaderboard request failed with status ${response.status}.`);
+				lastError = new Error(formatMessage(strings.leaderboard.errors.requestStatus, { status: response.status }));
 				continue;
 			}
 
@@ -40,18 +41,18 @@ const fetchRanking = async (url: string): Promise<CommittersRankingDto> => {
 			const contentType = response.headers.get("content-type") ?? "";
 			const body = await response.text();
 			if (!contentType.toLowerCase().includes("json") && body.trimStart().startsWith("<")) {
-				lastError = new Error("Leaderboard source returned an HTML error page.");
+				lastError = new Error(strings.leaderboard.errors.htmlResponse);
 				continue;
 			}
 			const parsed: unknown = JSON.parse(body);
 			if (isRanking(parsed)) return parsed;
-			lastError = new Error("Leaderboard source returned an invalid ranking.");
+			lastError = new Error(strings.leaderboard.errors.invalidRanking);
 		} catch (error) {
 			lastError = error;
 		}
 	}
 
-	throw lastError ?? new Error("The leaderboard request failed.");
+	throw lastError ?? new Error(strings.leaderboard.errors.requestFailed);
 };
 
 const parseDate = (value: unknown): Date | null => {
@@ -63,19 +64,19 @@ const parseDate = (value: unknown): Date | null => {
 export class RemoteLeaderboardRepository implements LeaderboardRepository {
 	async getCountryLeaderboard(countrySlug: string, countryName?: string): Promise<Leaderboard> {
 		const safeSlug = countrySlug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
-		if (!safeSlug) throw new Error("A valid country is required.");
+		if (!safeSlug) throw new Error(strings.leaderboard.errors.countryRequired);
 
 		let dto: CommittersRankingDto;
 		try {
 			dto = await fetchRanking(`${BASE_URL}/${safeSlug}.json`);
 		} catch {
-			throw new Error(`The ${countryName ?? safeSlug} leaderboard is not available right now.`);
+			throw new Error(formatMessage(strings.leaderboard.errors.unavailable, { country: countryName ?? safeSlug }));
 		}
 
 		const usernames = Array.isArray(dto.user)
 			? dto.user.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
 			: [];
-		if (usernames.length === 0) throw new Error("The leaderboard returned no ranked users.");
+		if (usernames.length === 0) throw new Error(strings.leaderboard.errors.noUsers);
 
 		return {
 			country: countryName ?? safeSlug.replaceAll("_", " "),
