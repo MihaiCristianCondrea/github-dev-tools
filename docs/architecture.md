@@ -24,6 +24,7 @@ The hash is the source of truth for restoring the selected view on refresh, dire
 Core code provides reusable app-wide foundations that are not specific to GitHub tools:
 
 - `events/` contains observable/event utilities.
+- `localization/` imports locale resources and provides template resolution, interpolation, plural, number, date, and ordinal formatting.
 - `material/` contains the bundled Material Web registration boundary.
 - `state/` contains global state, state wrappers, and the base model helper.
 - `typings/` contains project-level TypeScript declarations.
@@ -51,6 +52,22 @@ This first-pass structure intentionally keeps the existing app behavior centrali
 ### `src/app`
 
 `src/app/DataServices.ts` wires the data adapters and use cases used by the app shell. It is the integration point for the GitHub API client, favorites persistence, and promoted apps.
+
+## Localization
+
+English is the canonical locale and is split into feature-oriented JSON namespaces:
+
+```text
+src/locales/en/
+├── common.json
+├── github-tools.json
+├── favorites.json
+└── leaderboard.json
+```
+
+`src/core/localization/Localization.ts` exposes the active locale, the immutable resource object, `{variable}` interpolation, English plural and ordinal formatting, localized dates and numbers, and safe `{{namespace.key}}` substitution for raw HTML templates.
+
+User-facing text, accessibility labels, loading and error states, and generated UI copy belong in these resource files. Material icon names, route IDs, repository names, release tags, URLs, API payload values, and other technical identifiers are not translated. New languages should reproduce the same namespace and key structure before language switching is introduced.
 
 ## Product flows
 
