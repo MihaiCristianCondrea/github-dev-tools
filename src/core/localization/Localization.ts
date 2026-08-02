@@ -39,12 +39,14 @@ export const formatEnglishPlural = (
 });
 
 export const formatOrdinal = (value: number): string => {
-	const suffix = {
-		one: "st",
-		two: "nd",
-		few: "rd",
-		other: "th",
-	}[ordinalRules.select(value)];
+	const category = ordinalRules.select(value);
+	const suffix = category === "one"
+		? "st"
+		: category === "two"
+			? "nd"
+			: category === "few"
+				? "rd"
+				: "th";
 	return `${formatNumber(value)}${suffix}`;
 };
 
