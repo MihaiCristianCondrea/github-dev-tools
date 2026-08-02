@@ -1,0 +1,54 @@
+{
+  "app": {
+    "title": "GitHub Developer Tools",
+    "consoleStartupError": "Failed to start GitHub Tools",
+    "rootMissing": "#app root not found",
+    "loading": "Loading GitHub Tools…",
+    "startupErrorTitle": "GitHub Tools could not start",
+    "startupErrorDescription": "Please refresh the page. If the problem continues, check the browser console for details."
+  },
+  "navigation": {
+    "primary": "Primary navigation",
+    "menu": "Menu",
+    "openMenu": "Open menu",
+    "closeMenu": "Close menu",
+    "home": "Home",
+    "favorites": "Favorites",
+    "leaderboard": "Leaderboard",
+    "repoMapper": "Repo Mapper",
+    "releaseStats": "Release Stats",
+    "gitPatch": "Git Patch"
+  },
+  "settings": {
+    "sectionLabel": "App settings and links",
+    "theme": "Theme",
+    "themeOptions": "Theme options",
+    "useLightTheme": "Use light theme",
+    "useDarkTheme": "Use dark theme",
+    "useSystemTheme": "Use system theme",
+    "privacyPolicy": "Privacy Policy",
+    "codeOfConduct": "Code of Conduct"
+  },
+  "actions": {
+    "launchTool": "Launch Tool",
+    "exploreRankings": "Explore Rankings",
+    "copy": "Copy",
+    "copied": "Copied",
+    "download": "Download",
+    "retry": "Retry",
+    "loading": "Loading",
+    "previous": "Previous",
+    "next": "Next"
+  },
+  "appShowcase": {
+    "loadingLabel": "Loading apps",
+    "loading": "Loading apps…",
+    "empty": "No apps are available right now.",
+    "title": "More apps from Mihai-Cristian",
+    "viewAllLabel": "View all apps on Google Play",
+    "viewAll": "View all apps",
+    "error": "Could not load app recommendations. Please try again later.",
+    "openOnGooglePlay": "Open {appName} on Google Play",
+    "googlePlay": "Google Play"
+  }
+}
