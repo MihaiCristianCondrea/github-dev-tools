@@ -100,7 +100,6 @@
                         <span class="tool-card-copy">Extract raw .patch files from GitHub commit URLs for git apply.</span>
                         <span class="tool-link">Launch Tool <md-icon>arrow_forward</md-icon>
             </span>
-                        <span class="tool-watermark material-symbols-outlined">integration_instructions</span>
                     </md-outlined-card>
                 </div>
                 <div id="home-favorites-section" class="home-favorites hidden">
@@ -316,11 +315,20 @@
                     <md-outlined-text-field id="leaderboard-search" type="search" label="Search GitHub username" placeholder="Enter an exact GitHub username" autocomplete="off">
                         <md-icon slot="leading-icon">search</md-icon>
                     </md-outlined-text-field>
-                    <div class="location-action">
+                    <div class="leaderboard-filters" aria-label="Filter leaderboard by country">
+                        <md-chip-set id="leaderboard-country-filters">
+                            <md-filter-chip label="Global" data-country-slug="global" data-country-name="Global" selected></md-filter-chip>
+                            <md-filter-chip label="United States" data-country-slug="united_states" data-country-name="United States"></md-filter-chip>
+                            <md-filter-chip label="India" data-country-slug="india" data-country-name="India"></md-filter-chip>
+                            <md-filter-chip label="United Kingdom" data-country-slug="united_kingdom" data-country-name="United Kingdom"></md-filter-chip>
+                            <md-filter-chip label="Germany" data-country-slug="germany" data-country-name="Germany"></md-filter-chip>
+                            <md-filter-chip label="France" data-country-slug="france" data-country-name="France"></md-filter-chip>
+                            <md-filter-chip label="Canada" data-country-slug="canada" data-country-name="Canada"></md-filter-chip>
+                            <md-filter-chip label="Romania" data-country-slug="romania" data-country-name="Romania"></md-filter-chip>
+                        </md-chip-set>
                         <md-outlined-button id="leaderboard-locate" type="button" class="secondary-button">
                             <md-icon slot="icon">my_location</md-icon>Use my location
                         </md-outlined-button>
-                        <span id="leaderboard-location-status" role="status">Showing Romania as a general starting point. Location is only requested when you choose.</span>
                     </div>
                 </div>
                 <div id="leaderboard-loading" class="leaderboard-loading" role="status">
@@ -331,7 +339,7 @@
                     <div class="leaderboard-heading">
                         <div>
                             <p class="eyebrow">Current ranking</p>
-                            <h3 id="leaderboard-country">Romania</h3>
+                            <h3 id="leaderboard-country">Global</h3>
                         </div>
                         <div class="leaderboard-meta">
                             <span id="leaderboard-count"></span>

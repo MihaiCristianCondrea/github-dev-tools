@@ -38,10 +38,6 @@ export class LeaderboardView {
 		this.element("#leaderboard-error").classList.add("hidden");
 	}
 
-	setLocationStatus(message: string): void {
-		this.element("#leaderboard-location-status").textContent = message;
-	}
-
 	private createUserRow(user: RankedUser, country: string, emphasized: boolean): HTMLAnchorElement {
 		const link = document.createElement("a");
 		link.className = `leaderboard-row${emphasized ? " search-result" : ""}${user.rank <= 3 ? ` podium rank-${user.rank}` : ""}`;
