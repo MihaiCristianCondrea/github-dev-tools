@@ -10,7 +10,6 @@
 4. `src/features/github-tools/presentation/GitHubToolsApp.ts` owns top-level navigation, the drawer, shared layout, favorites wiring, and tool switching.
 5. Tool actions call GitHub Tools core services plus tool-specific domain helpers, then render results back into the app shell template.
 
-
 ## GitHub Tools routing
 
 GitHub Tools uses hash-based routing for its top-level views. The public deep-link routes are `#home`, `#repo-mapper`, `#release-stats`, `#git-patch`, and `#favorites`. These route names are treated as public URL API and should remain user-friendly rather than exposing internal view IDs such as `mapper`, `releases`, or `gitpatch`.
@@ -24,6 +23,7 @@ The hash is the source of truth for restoring the selected view on refresh, dire
 Core code provides reusable app-wide foundations that are not specific to GitHub tools:
 
 - `events/` contains observable/event utilities.
+- `localization/` imports locale resources and provides template resolution, interpolation, plural, number, date, and ordinal formatting.
 - `material/` contains the bundled Material Web registration boundary.
 - `state/` contains global state, state wrappers, and the base model helper.
 - `typings/` contains project-level TypeScript declarations.
@@ -50,7 +50,23 @@ This first-pass structure intentionally keeps the existing app behavior centrali
 
 ### `src/app`
 
-`src/app/DataServices.ts` wires the data adapters and use cases used by the app shell. It is the integration point for the GitHub API client, favorites persistence, and promoted apps.
+`src/app/DataServices.ts` wires the data adapters and use cases used by the app shell. It is the integration point for the GitHub API client, favorites persistence, leaderboard access, and promoted apps.
+
+## Localization
+
+English is the canonical locale and is split into feature-oriented JSON namespaces:
+
+```text
+src/locales/en/
+├── common.json
+├── github-tools.json
+├── favorites.json
+└── leaderboard.json
+```
+
+`src/core/localization/Localization.ts` exposes the active locale, the immutable resource object, `{variable}` interpolation, English plural and ordinal formatting, localized dates and numbers, and safe `{{namespace.key}}` substitution for raw HTML templates.
+
+User-facing text, accessibility labels, loading and error states, and generated UI copy belong in these resource files. Material icon names, route IDs, repository names, release tags, URLs, API payload values, country slugs, and other technical identifiers are not translated. New languages should reproduce the same namespace and key structure before language switching is introduced.
 
 ## Product flows
 
@@ -60,7 +76,7 @@ The UI exposes three primary tools:
 - **Release Stats** accepts a GitHub repository URL and renders total downloads, per-release totals, and asset-level download counts.
 - **Git Patch** accepts a GitHub commit URL and returns the commit patch text for download or copying.
 
-Favorites are shared across Repo Mapper and Release Stats, saved locally, and shown both on the Favorites page and as home-screen shortcuts.
+The leaderboard starts with the global ranking, supports country chips, optional location lookup, top-bar username search, and paginated results. Favorites are shared across Repo Mapper and Release Stats, saved locally, and shown both on the Favorites page and as home-screen shortcuts.
 
 ## Custom-element registration rules
 
