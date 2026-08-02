@@ -1,6 +1,7 @@
 import DataServices from "./DataServices";
 import GitHubToolsApp from "../features/github-tools/presentation/GitHubToolsApp";
 import { defineMaterialElements } from "../core/material/MaterialElements";
+import { activeLocale, strings } from "../core/localization/Localization";
 import GlobalState from "../core/state/GlobalState";
 
 if (!customElements.get("github-tools-app")) {
@@ -10,6 +11,7 @@ if (!customElements.get("github-tools-app")) {
 export const startApp = async (): Promise<void> => {
 	"use strict";
 
+	document.documentElement.lang = activeLocale;
 	renderLoadingState();
 
 	try {
@@ -18,14 +20,14 @@ export const startApp = async (): Promise<void> => {
 		await GlobalState.init();
 		onApplicationStart();
 	} catch (error) {
-		console.error("Failed to start GitHub Tools", error);
+		console.error(strings.common.app.consoleStartupError, error);
 		renderStartupError();
 	}
 };
 
 const onApplicationStart = (): void => {
 	const appRoot = document.querySelector<HTMLDivElement>("#app");
-	if (!appRoot) throw new Error("#app root not found");
+	if (!appRoot) throw new Error(strings.common.app.rootMissing);
 	appRoot.textContent = "";
 	appRoot.append(document.createElement("github-tools-app"));
 };
@@ -33,11 +35,11 @@ const onApplicationStart = (): void => {
 const renderLoadingState = (): void => {
 	const appRoot = document.querySelector<HTMLDivElement>("#app");
 	if (!appRoot) return;
-	appRoot.innerHTML = `<main style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:system-ui,sans-serif;color:#111;background:#fff;"><p>Loading GitHub Tools…</p></main>`;
+	appRoot.innerHTML = `<main style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:system-ui,sans-serif;color:#111;background:#fff;"><p>${strings.common.app.loading}</p></main>`;
 };
 
 const renderStartupError = (): void => {
 	const appRoot = document.querySelector<HTMLDivElement>("#app");
 	if (!appRoot) return;
-	appRoot.innerHTML = `<main style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:system-ui,sans-serif;color:#111;background:#fff;"><section style="max-width:560px;border:1px solid #ddd;border-radius:16px;padding:24px;"><h1 style="margin-top:0;">GitHub Tools could not start</h1><p>Please refresh the page. If the problem continues, check the browser console for details.</p></section></main>`;
+	appRoot.innerHTML = `<main style="min-height:100vh;display:grid;place-items:center;padding:24px;font-family:system-ui,sans-serif;color:#111;background:#fff;"><section style="max-width:560px;border:1px solid #ddd;border-radius:16px;padding:24px;"><h1 style="margin-top:0;">${strings.common.app.startupErrorTitle}</h1><p>${strings.common.app.startupErrorDescription}</p></section></main>`;
 };
