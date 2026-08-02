@@ -145,6 +145,8 @@ particle-network-background { position: fixed; inset: 0; z-index: 0; pointer-eve
 .topbar { position: sticky; top: 0; z-index: 30; padding: 0 16px; justify-content: space-between; border-bottom: 1px solid var(--border-color); background: var(--bg-color); }
 .topbar-title { display: flex; align-items: center; gap: 16px; }
 .topbar h1 { font-size: 22px; }
+.topbar-leaderboard-search { display: none; width: min(420px, 48vw); }
+.topbar-leaderboard-search.visible { display: block; }
 .content { min-height: calc(100vh - 64px); padding: 24px 16px 48px; }
 .content-inner { max-width: 1024px; margin: 0 auto; }
 .view-section { display: none; animation: fade-in .35s ease-out; }
@@ -235,9 +237,9 @@ particle-network-background { position: fixed; inset: 0; z-index: 0; pointer-eve
 .leaderboard-hero h2 { max-width: 720px; margin: 0; font-size: clamp(34px, 6vw, 60px); line-height: 1.02; letter-spacing: -.045em; }
 .leaderboard-hero p:not(.eyebrow) { max-width: 670px; margin: 18px 0 0; color: var(--muted-text); font-size: 17px; line-height: 1.6; }
 .leaderboard-controls { display: grid; gap: 20px; }
-.leaderboard-controls md-outlined-text-field { width: 100%; }
 .leaderboard-filters { display: flex; align-items: center; gap: 16px; }
-.leaderboard-filters md-chip-set { min-width: 0; flex: 1; }
+.leaderboard-chip-scroller { min-width: 0; flex: 1; overflow-x: auto; padding-bottom: 4px; scrollbar-width: thin; }
+.leaderboard-filters md-chip-set { display: flex; width: max-content; }
 .leaderboard-loading { min-height: 320px; display: flex; flex-direction: column; align-items: center; justify-content: center; gap: 18px; color: var(--muted-text); }
 .leaderboard-loading md-circular-progress { --md-circular-progress-active-indicator-color: var(--primary); }
 .leaderboard-content { margin-top: 32px; }
@@ -260,8 +262,13 @@ particle-network-background { position: fixed; inset: 0; z-index: 0; pointer-eve
 .leaderboard-empty > md-icon { font-size: 52px; }
 .leaderboard-empty h3 { margin: 16px 0 4px; }
 .leaderboard-empty p { margin: 0; color: var(--muted-text); }
+.leaderboard-pagination { display: flex; align-items: center; justify-content: center; gap: 18px; padding: 24px 0 4px; }
+.leaderboard-pagination span { min-width: 92px; color: var(--muted-text); text-align: center; font-size: 14px; }
 
 @media (max-width: 700px) {
+	.topbar { gap: 10px; }
+	.topbar-title { gap: 4px; }
+	.topbar-leaderboard-search { width: min(58vw, 300px); }
 	.leaderboard-filters { align-items: flex-start; flex-direction: column; }
 	.leaderboard-heading { align-items: flex-start; flex-direction: column; }
 	.leaderboard-meta { flex-wrap: wrap; }

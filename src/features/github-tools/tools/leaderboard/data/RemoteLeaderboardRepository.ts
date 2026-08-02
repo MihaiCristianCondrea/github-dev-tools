@@ -7,12 +7,20 @@ type CommittersRankingDto = {
 };
 
 const BASE_URL = "https://committers.top/rank_only";
-const CORS_PROXY_URL = "https://api.allorigins.win/raw?url=";
+const CORS_PROXY_URLS = [
+	"https://api.allorigins.win/raw?url=",
+	"https://corsproxy.io/?url=",
+];
 
-const fetchRanking = async (url: string): Promise<Response> => {
+const isRanking = (value: unknown): value is CommittersRankingDto => {
+	if (!value || typeof value !== "object") return false;
+	return Array.isArray((value as CommittersRankingDto).user);
+};
+
+const fetchRanking = async (url: string): Promise<CommittersRankingDto> => {
 	// committers.top does not consistently send CORS headers, so use a CORS-enabled
 	// passthrough first and retain the source URL as a fallback for compatible clients.
-	const urls = [`${CORS_PROXY_URL}${encodeURIComponent(url)}`, url];
+	const urls = [...CORS_PROXY_URLS.map((proxy) => `${proxy}${encodeURIComponent(url)}`), url];
 	let lastError: unknown;
 
 	for (const requestUrl of urls) {
@@ -21,8 +29,23 @@ const fetchRanking = async (url: string): Promise<Response> => {
 				headers: { Accept: "application/json" },
 				cache: "no-store",
 			});
-			if (response.ok) return response;
-			lastError = new Error(`Leaderboard request failed with status ${response.status}.`);
+			if (!response.ok) {
+				lastError = new Error(`Leaderboard request failed with status ${response.status}.`);
+				continue;
+			}
+
+			// Some proxies return an HTML error document with a successful status. Parse
+			// defensively here so the next source can be tried instead of leaking a JSON
+			// parser error into the UI.
+			const contentType = response.headers.get("content-type") ?? "";
+			const body = await response.text();
+			if (!contentType.toLowerCase().includes("json") && body.trimStart().startsWith("<")) {
+				lastError = new Error("Leaderboard source returned an HTML error page.");
+				continue;
+			}
+			const parsed: unknown = JSON.parse(body);
+			if (isRanking(parsed)) return parsed;
+			lastError = new Error("Leaderboard source returned an invalid ranking.");
 		} catch (error) {
 			lastError = error;
 		}
@@ -42,14 +65,13 @@ export class RemoteLeaderboardRepository implements LeaderboardRepository {
 		const safeSlug = countrySlug.trim().toLowerCase().replace(/[^a-z0-9_-]/g, "");
 		if (!safeSlug) throw new Error("A valid country is required.");
 
-		let response: Response;
+		let dto: CommittersRankingDto;
 		try {
-			response = await fetchRanking(`${BASE_URL}/${safeSlug}.json`);
+			dto = await fetchRanking(`${BASE_URL}/${safeSlug}.json`);
 		} catch {
 			throw new Error(`The ${countryName ?? safeSlug} leaderboard is not available right now.`);
 		}
 
-		const dto = await response.json() as CommittersRankingDto;
 		const usernames = Array.isArray(dto.user)
 			? dto.user.filter((value): value is string => typeof value === "string" && value.trim().length > 0)
 			: [];

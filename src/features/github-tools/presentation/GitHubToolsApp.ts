@@ -24,6 +24,7 @@ type SegmentedButtonSetElement = HTMLElement & { setButtonSelected(index: number
 type ThemePreference = "light" | "dark" | "system";
 
 const THEME_STORAGE_KEY = "github_tools_theme";
+const LEADERBOARD_PAGE_SIZE = 25;
 
 const VIEW_TITLES: Record<ViewId, string> = {
 	home: "Home",
@@ -57,6 +58,7 @@ export default class GitHubToolsApp extends WebComponent {
 	private readonly favoritesView = new FavoritesView();
 	private readonly countryLocator = new BrowserCountryLocator();
 	private leaderboardView!: LeaderboardView;
+	private leaderboardPage = 1;
 	private pendingActions = new Set<"mapper" | "releases" | "patch">();
 	private readonly handleHashChange = (): void => this.activateViewFromHash();
 	private readonly handleSystemThemeChange = (): void => this.applyTheme(this.getThemePreference(), false);
@@ -209,7 +211,18 @@ export default class GitHubToolsApp extends WebComponent {
 	}
 
 	private bindLeaderboard(): void {
-		this.select<HTMLInputElement>("#leaderboard-search")?.addEventListener("input", () => this.renderLeaderboardUsers());
+		this.select<HTMLInputElement>("#leaderboard-search")?.addEventListener("input", () => {
+			this.leaderboardPage = 1;
+			this.renderLeaderboardUsers();
+		});
+		this.select("#leaderboard-previous")?.addEventListener("click", () => {
+			this.leaderboardPage = Math.max(1, this.leaderboardPage - 1);
+			this.renderLeaderboardUsers();
+		});
+		this.select("#leaderboard-next")?.addEventListener("click", () => {
+			this.leaderboardPage += 1;
+			this.renderLeaderboardUsers();
+		});
 		this.select("#leaderboard-country-filters")?.addEventListener("click", (event) => {
 			const chip = (event.target as HTMLElement).closest<HTMLElement>("md-filter-chip[data-country-slug]");
 			if (!chip) return;
@@ -287,6 +300,7 @@ export default class GitHubToolsApp extends WebComponent {
 		activeNav?.querySelector("md-icon, .material-symbols-outlined")?.classList.add("filled-icon");
 		const topbarTitle = this.select("#topbar-title");
 		if (topbarTitle) topbarTitle.textContent = VIEW_TITLES[viewId];
+		this.select("#leaderboard-search")?.classList.toggle("visible", viewId === "leaderboard");
 
 		if (url && viewId === "mapper") {
 			this.select<HTMLInputElement>("#mapper-url")!.value = url;
@@ -304,6 +318,7 @@ export default class GitHubToolsApp extends WebComponent {
 		this.leaderboardView.hideError();
 		this.leaderboardView.setLoading(true);
 		try {
+			this.leaderboardPage = 1;
 			this.state.leaderboard = await DataServices.leaderboard.execute(countrySlug, countryName);
 			this.leaderboardView.renderHeader(this.state.leaderboard);
 			this.selectAll<HTMLElement>("#leaderboard-country-filters md-filter-chip").forEach((chip) => {
@@ -322,8 +337,12 @@ export default class GitHubToolsApp extends WebComponent {
 	private renderLeaderboardUsers(): void {
 		if (!this.state.leaderboard) return;
 		const query = this.select<HTMLInputElement>("#leaderboard-search")?.value ?? "";
-		const users = DataServices.searchLeaderboard.execute(this.state.leaderboard, query, this.state.leaderboard.users.length);
-		this.leaderboardView.renderUsers(users, this.state.leaderboard.country, query.trim().length > 0);
+		const allUsers = DataServices.searchLeaderboard.execute(this.state.leaderboard, query, this.state.leaderboard.users.length);
+		const pageCount = Math.max(1, Math.ceil(allUsers.length / LEADERBOARD_PAGE_SIZE));
+		this.leaderboardPage = Math.min(this.leaderboardPage, pageCount);
+		const start = (this.leaderboardPage - 1) * LEADERBOARD_PAGE_SIZE;
+		this.leaderboardView.renderUsers(allUsers.slice(start, start + LEADERBOARD_PAGE_SIZE), this.state.leaderboard.country, query.trim().length > 0);
+		this.leaderboardView.renderPagination(this.leaderboardPage, pageCount, allUsers.length);
 	}
 
 	private async useCurrentLocation(): Promise<void> {

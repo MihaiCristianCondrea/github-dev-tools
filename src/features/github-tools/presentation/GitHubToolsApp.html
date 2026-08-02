@@ -64,6 +64,9 @@
             </md-icon-button>
             <h1 id="topbar-title">Home</h1>
         </div>
+		<md-outlined-text-field class="topbar-leaderboard-search" id="leaderboard-search" type="search" label="Search leaderboard" placeholder="GitHub username" autocomplete="off">
+			<md-icon slot="leading-icon">search</md-icon>
+		</md-outlined-text-field>
     </header>
     <main class="content">
         <div class="content-inner">
@@ -312,10 +315,8 @@
                     </div>
                 </div>
                 <div class="leaderboard-controls panel">
-                    <md-outlined-text-field id="leaderboard-search" type="search" label="Search GitHub username" placeholder="Enter an exact GitHub username" autocomplete="off">
-                        <md-icon slot="leading-icon">search</md-icon>
-                    </md-outlined-text-field>
                     <div class="leaderboard-filters" aria-label="Filter leaderboard by country">
+						<div class="leaderboard-chip-scroller" tabindex="0" aria-label="Popular leaderboard locations">
                         <md-chip-set id="leaderboard-country-filters">
                             <md-filter-chip label="Global" data-country-slug="global" data-country-name="Global" selected></md-filter-chip>
                             <md-filter-chip label="United States" data-country-slug="united_states" data-country-name="United States"></md-filter-chip>
@@ -326,6 +327,7 @@
                             <md-filter-chip label="Canada" data-country-slug="canada" data-country-name="Canada"></md-filter-chip>
                             <md-filter-chip label="Romania" data-country-slug="romania" data-country-name="Romania"></md-filter-chip>
                         </md-chip-set>
+						</div>
                         <md-outlined-button id="leaderboard-locate" type="button" class="secondary-button">
                             <md-icon slot="icon">my_location</md-icon>Use my location
                         </md-outlined-button>
@@ -352,6 +354,11 @@
                         <md-text-button id="leaderboard-retry" type="button" class="text-button">Retry</md-text-button>
                     </div>
                     <div id="leaderboard-list" class="leaderboard-list" aria-live="polite"></div>
+					<nav id="leaderboard-pagination" class="leaderboard-pagination hidden" aria-label="Leaderboard pages">
+						<md-outlined-button id="leaderboard-previous" type="button"><md-icon slot="icon">chevron_left</md-icon>Previous</md-outlined-button>
+						<span id="leaderboard-page-status" aria-live="polite"></span>
+						<md-outlined-button id="leaderboard-next" type="button">Next<md-icon slot="icon">chevron_right</md-icon></md-outlined-button>
+					</nav>
                     <div id="leaderboard-empty" class="leaderboard-empty hidden">
                         <md-icon>person_search</md-icon>
                         <h3>No ranking match</h3>
