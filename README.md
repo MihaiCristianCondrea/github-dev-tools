@@ -1,63 +1,126 @@
 # GitHub Dev Tools
 
-GitHub Dev Tools is a browser-native TypeScript Web Components app for working with GitHub repositories. It provides three focused utilities:
+GitHub Dev Tools is a browser-native TypeScript application for inspecting public GitHub repositories. It is built with Vite, native Web Components, and Material Web.
 
-- **RepoMapper**: generate an ASCII directory tree or a newline-delimited path list for a public GitHub repository.
-- **Release Stats**: inspect release download totals and per-asset download performance.
-- **Git Patch**: fetch a raw `.patch` file from a GitHub commit URL for use with `git apply`.
+Live site: `https://mihaicristiancondrea.github.io/github-dev-tools/`
 
-The app runs entirely in the browser and uses the GitHub REST API directly. Personal access tokens are optional and are only used client-side to increase GitHub API rate limits for the current request.
+## Tools
 
-## Architecture
+- **Repo Mapper** generates an ASCII directory tree or newline-delimited path list.
+- **Release Stats** shows total release downloads and per-asset performance.
+- **Git Patch** fetches a raw `.patch` file from a GitHub commit URL for use with `git apply`.
+- **GitHub Leaderboard** provides global and country rankings, username search, and paginated results sourced from committers.top.
 
-The project follows a clean data / domain / presentation split:
+Favorites are shared by Repo Mapper and Release Stats and are stored in the browser. GitHub access tokens are optional, remain client-side, and are used only for the current GitHub API request.
+
+## Technology
+
+- TypeScript
+- Vite
+- Native Web Components and Shadow DOM
+- Material Web from `@material/web`
+- GitHub REST API
+- GitHub Pages
+- Node's built-in test runner
+
+## Project structure
 
 ```text
 src/
-├── components/              # Presentation layer: Web Components, HTML, and CSS
-│   └── RepoMapperApp/
-├── data/                    # Data layer: GitHub API client and browser storage adapters
-├── domain/                  # Domain layer: app models and pure business services
-│   ├── models/
-│   └── services/
-├── lib/                     # Generic Web Component, event, data, and state primitives
-└── main.ts                  # Application bootstrap
+├── app/
+│   ├── main.ts                     # Browser entry point
+│   ├── App.ts                      # Startup and application mounting
+│   └── DataServices.ts             # Data adapter and use-case wiring
+├── core/
+│   ├── components/                 # App-wide visual components
+│   ├── events/                     # Reusable event primitives
+│   ├── localization/               # Locale loading and formatting boundary
+│   ├── material/                   # Central Material Web registration
+│   ├── state/                      # Shared state infrastructure
+│   ├── typings/                    # Project-level declarations
+│   └── webcomponents/              # Base custom-element helpers
+├── features/
+│   ├── app-showcase/               # Promoted Android applications
+│   ├── favorites/                  # Favorite repository persistence and UI
+│   └── github-tools/
+│       ├── core/                   # Shared GitHub models and services
+│       ├── presentation/           # Main shell and navigation
+│       └── tools/                  # Mapper, releases, patch, and leaderboard domains
+└── locales/
+    ├── README.md
+    └── en/
+        ├── common.json
+        ├── github-tools.json
+        ├── favorites.json
+        └── leaderboard.json
 ```
 
-### Layer responsibilities
-
-- **Domain (`src/domain`)** contains the app's stable business concepts, such as repositories, release stats, repository trees, patch files, URL parsing, and map building.
-- **Data (`src/data`)** adapts external systems into domain models. Today this includes the GitHub REST API and `localStorage` favorites.
-- **Presentation (`src/components`)** renders the UI and coordinates user interactions. Components should call data/domain services instead of embedding API response mapping or tree-building logic directly.
-- **Library (`src/lib`)** contains reusable Web Component infrastructure that is not specific to GitHub Dev Tools.
+See [`docs/architecture.md`](docs/architecture.md) for runtime flow, routing, source-layer responsibilities, and integration boundaries.
 
 ## Setup
+
+Node.js 22 is used by CI and is recommended locally.
 
 ```bash
 npm install
 ```
 
-## Development
+## Commands
 
 ```bash
 npm run dev
 ```
 
-Then open the Vite dev-server URL printed in the terminal.
+Starts the Vite development server.
 
-## Build
+```bash
+npm run validate:locales
+```
+
+Validates locale directories, namespace files, key parity, placeholders, template tokens, user-facing source copy, and browser metadata synchronization.
 
 ```bash
 npm run build
 ```
 
-## Preview production build
+Runs strict TypeScript compilation and creates the production Vite bundle.
+
+```bash
+npm test
+```
+
+Runs the unit and localization tests with Node's built-in test runner.
+
+```bash
+npm run check
+```
+
+Runs locale validation, the production build, and all tests. This is the main pre-pull-request command.
 
 ```bash
 npm run preview
 ```
 
-## Notes
+Serves the generated production bundle locally.
 
-- Public GitHub API requests can be rate-limited. Use the optional token fields in the app if you need higher limits.
-- Favorites are stored locally in your browser using `localStorage`.
+## Localization
+
+English is currently the active and canonical locale. All readable or screen-reader-exposed application copy belongs under `src/locales/en/` and is accessed through `src/core/localization/Localization.ts`.
+
+Every future language must reproduce the same four namespace files and JSON keys. Locale validation checks missing files, missing or unknown keys, empty values, interpolation placeholders, unresolved template tokens, common hardcoded UI sinks, and metadata drift.
+
+Adding a locale directory does not activate language switching by itself. See [`docs/localization.md`](docs/localization.md) for namespace ownership, coding examples, translation rules, validation behavior, and the complete language-addition workflow.
+
+## CI and deployment
+
+Pull requests and pushes to `master` run `npm run check`. The GitHub Pages workflow validates locale resources again before building and deploying `dist/`.
+
+The Vite base path is `/github-dev-tools/`, matching the GitHub Pages project site.
+
+## Security and data handling
+
+- Public GitHub requests can be rate-limited.
+- Optional access tokens are trimmed and sent as bearer credentials only to GitHub API requests.
+- Authenticated responses are not retained in the shared in-memory response cache.
+- Favorites remain in the browser through `localStorage`.
+- The `references/` directory is research-only and is never imported into production code.
