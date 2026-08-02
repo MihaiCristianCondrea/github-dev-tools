@@ -210,8 +210,17 @@ export default class GitHubToolsApp extends WebComponent {
 
 	private bindLeaderboard(): void {
 		this.select<HTMLInputElement>("#leaderboard-search")?.addEventListener("input", () => this.renderLeaderboardUsers());
+		this.select("#leaderboard-country-filters")?.addEventListener("click", (event) => {
+			const chip = (event.target as HTMLElement).closest<HTMLElement>("md-filter-chip[data-country-slug]");
+			if (!chip) return;
+			const { countrySlug, countryName } = chip.dataset;
+			if (!countrySlug || !countryName || countrySlug === this.state.leaderboard?.countrySlug) return;
+			void this.loadLeaderboard(countrySlug, countryName);
+		});
 		this.select("#leaderboard-locate")?.addEventListener("click", () => void this.useCurrentLocation());
-		this.select("#leaderboard-retry")?.addEventListener("click", () => void this.loadLeaderboard("romania", "Romania"));
+		this.select("#leaderboard-retry")?.addEventListener("click", () => {
+			void this.loadLeaderboard(this.state.leaderboard?.countrySlug ?? "global", this.state.leaderboard?.country ?? "Global");
+		});
 	}
 
 	private toggleDrawer(forceOpen?: boolean): void {
@@ -287,7 +296,7 @@ export default class GitHubToolsApp extends WebComponent {
 			this.select<HTMLInputElement>("#releases-url")!.value = url;
 			this.handleUrlInput("releases");
 		}
-		if (viewId === "leaderboard" && !this.state.leaderboard) void this.loadLeaderboard("romania", "Romania");
+		if (viewId === "leaderboard" && !this.state.leaderboard) void this.loadLeaderboard("global", "Global");
 		if (closeDrawer) this.toggleDrawer(false);
 	}
 
@@ -297,6 +306,9 @@ export default class GitHubToolsApp extends WebComponent {
 		try {
 			this.state.leaderboard = await DataServices.leaderboard.execute(countrySlug, countryName);
 			this.leaderboardView.renderHeader(this.state.leaderboard);
+			this.selectAll<HTMLElement>("#leaderboard-country-filters md-filter-chip").forEach((chip) => {
+				chip.toggleAttribute("selected", chip.dataset.countrySlug === countrySlug);
+			});
 			this.renderLeaderboardUsers();
 			return true;
 		} catch (error) {
@@ -310,25 +322,18 @@ export default class GitHubToolsApp extends WebComponent {
 	private renderLeaderboardUsers(): void {
 		if (!this.state.leaderboard) return;
 		const query = this.select<HTMLInputElement>("#leaderboard-search")?.value ?? "";
-		const users = DataServices.searchLeaderboard.execute(this.state.leaderboard, query, query.trim() ? 20 : 25);
+		const users = DataServices.searchLeaderboard.execute(this.state.leaderboard, query, this.state.leaderboard.users.length);
 		this.leaderboardView.renderUsers(users, this.state.leaderboard.country, query.trim().length > 0);
 	}
 
 	private async useCurrentLocation(): Promise<void> {
 		const button = this.select<HTMLElement>("#leaderboard-locate");
 		button?.toggleAttribute("disabled", true);
-		this.leaderboardView.setLocationStatus("Requesting location permission…");
 		try {
 			const country = await this.countryLocator.locate();
-			const loaded = await this.loadLeaderboard(country.slug, country.name);
-			this.leaderboardView.setLocationStatus(loaded
-				? `Showing developers near you in ${country.name}.`
-				: `A ranking for ${country.name} could not be loaded. Your previous ranking is unchanged.`);
-		} catch (error) {
-			const denied = typeof error === "object" && error !== null && "code" in error && error.code === 1;
-			this.leaderboardView.setLocationStatus(denied
-				? "Location was not shared. You can keep exploring the general Romania leaderboard."
-				: "Location could not be resolved. The general Romania leaderboard is still available.");
+			await this.loadLeaderboard(country.slug, country.name);
+		} catch {
+			// Location is optional; keep the currently selected leaderboard when unavailable.
 		} finally {
 			button?.removeAttribute("disabled");
 		}
