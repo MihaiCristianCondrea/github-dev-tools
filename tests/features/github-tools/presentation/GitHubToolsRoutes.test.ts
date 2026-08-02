@@ -15,6 +15,7 @@ const routes: ReadonlyArray<{ hash: string; viewId: ViewId }> = [
 	{ hash: "#release-stats", viewId: "releases" },
 	{ hash: "#git-patch", viewId: "gitpatch" },
 	{ hash: "#favorites", viewId: "favorites" },
+	{ hash: "#leaderboard", viewId: "leaderboard" },
 ];
 
 test("hash routes are normalized", () => {

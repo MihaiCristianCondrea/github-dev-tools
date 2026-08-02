@@ -11,6 +11,9 @@ import type { ProcessedRelease, ReleaseAsset, ReleaseStats } from "../tools/rele
 import type { RepositoryMapFormat, RepositoryMapResult, RepositoryTreeItem } from "../tools/repo-mapper/domain/RepositoryTree";
 import GitHubUrlParser from "../core/services/GitHubUrlParser";
 import RepositoryMapBuilder from "../tools/repo-mapper/domain/RepositoryMapBuilder";
+import { BrowserCountryLocator } from "../tools/leaderboard/data/BrowserCountryLocator";
+import type { Leaderboard } from "../tools/leaderboard/domain/Leaderboard";
+import { LeaderboardView } from "../tools/leaderboard/presentation/LeaderboardView";
 import { hashFromViewId, isEmptyHashRoute, isKnownHashRoute, viewIdFromHash, type ViewId } from "./GitHubToolsRoutes";
 import WebComponent from "../../../core/webcomponents/WebComponent";
 import css from "./GitHubToolsApp.scss?raw";
@@ -28,6 +31,7 @@ const VIEW_TITLES: Record<ViewId, string> = {
 	mapper: "Repo Mapper",
 	releases: "Release Stats",
 	gitpatch: "Git Patch",
+	leaderboard: "Leaderboard",
 };
 
 
@@ -46,10 +50,13 @@ type AppState = {
 		parsedRepo: RepositoryRef | null;
 	};
 	patch: PatchFile;
+	leaderboard: Leaderboard | null;
 };
 
 export default class GitHubToolsApp extends WebComponent {
 	private readonly favoritesView = new FavoritesView();
+	private readonly countryLocator = new BrowserCountryLocator();
+	private leaderboardView!: LeaderboardView;
 	private pendingActions = new Set<"mapper" | "releases" | "patch">();
 	private readonly handleHashChange = (): void => this.activateViewFromHash();
 	private readonly handleSystemThemeChange = (): void => this.applyTheme(this.getThemePreference(), false);
@@ -72,6 +79,7 @@ export default class GitHubToolsApp extends WebComponent {
 			content: "",
 			filename: "git.patch",
 		},
+		leaderboard: null,
 	};
 
 	constructor() {
@@ -83,6 +91,7 @@ export default class GitHubToolsApp extends WebComponent {
 	}
 
 	onConnected(): void {
+		this.leaderboardView = new LeaderboardView(this.shadowRoot!);
 		this.loadFavorites();
 		this.applyTheme(this.getThemePreference(), false);
 		this.bindNavigation();
@@ -90,6 +99,7 @@ export default class GitHubToolsApp extends WebComponent {
 		this.bindFavorites();
 		this.bindRepositoryMapFormatControls();
 		this.bindPatchActions();
+		this.bindLeaderboard();
 		this.bindThemeOptions();
 		this.configureAppShowcase();
 		this.bindSubmitButtonFallbacks();
@@ -198,6 +208,12 @@ export default class GitHubToolsApp extends WebComponent {
 		this.select("#patch-download-btn")?.addEventListener("click", () => this.downloadPatch());
 	}
 
+	private bindLeaderboard(): void {
+		this.select<HTMLInputElement>("#leaderboard-search")?.addEventListener("input", () => this.renderLeaderboardUsers());
+		this.select("#leaderboard-locate")?.addEventListener("click", () => void this.useCurrentLocation());
+		this.select("#leaderboard-retry")?.addEventListener("click", () => void this.loadLeaderboard("romania", "Romania"));
+	}
+
 	private toggleDrawer(forceOpen?: boolean): void {
 		const drawer = this.select<NavigationDrawerElement>("#drawer");
 		if (!drawer) return;
@@ -271,7 +287,51 @@ export default class GitHubToolsApp extends WebComponent {
 			this.select<HTMLInputElement>("#releases-url")!.value = url;
 			this.handleUrlInput("releases");
 		}
+		if (viewId === "leaderboard" && !this.state.leaderboard) void this.loadLeaderboard("romania", "Romania");
 		if (closeDrawer) this.toggleDrawer(false);
+	}
+
+	private async loadLeaderboard(countrySlug: string, countryName: string): Promise<boolean> {
+		this.leaderboardView.hideError();
+		this.leaderboardView.setLoading(true);
+		try {
+			this.state.leaderboard = await DataServices.leaderboard.execute(countrySlug, countryName);
+			this.leaderboardView.renderHeader(this.state.leaderboard);
+			this.renderLeaderboardUsers();
+			return true;
+		} catch (error) {
+			this.leaderboardView.showError(this.errorMessage(error));
+			return false;
+		} finally {
+			this.leaderboardView.setLoading(false);
+		}
+	}
+
+	private renderLeaderboardUsers(): void {
+		if (!this.state.leaderboard) return;
+		const query = this.select<HTMLInputElement>("#leaderboard-search")?.value ?? "";
+		const users = DataServices.searchLeaderboard.execute(this.state.leaderboard, query, query.trim() ? 20 : 25);
+		this.leaderboardView.renderUsers(users, this.state.leaderboard.country, query.trim().length > 0);
+	}
+
+	private async useCurrentLocation(): Promise<void> {
+		const button = this.select<HTMLElement>("#leaderboard-locate");
+		button?.toggleAttribute("disabled", true);
+		this.leaderboardView.setLocationStatus("Requesting location permission…");
+		try {
+			const country = await this.countryLocator.locate();
+			const loaded = await this.loadLeaderboard(country.slug, country.name);
+			this.leaderboardView.setLocationStatus(loaded
+				? `Showing developers near you in ${country.name}.`
+				: `A ranking for ${country.name} could not be loaded. Your previous ranking is unchanged.`);
+		} catch (error) {
+			const denied = typeof error === "object" && error !== null && "code" in error && error.code === 1;
+			this.leaderboardView.setLocationStatus(denied
+				? "Location was not shared. You can keep exploring the general Romania leaderboard."
+				: "Location could not be resolved. The general Romania leaderboard is still available.");
+		} finally {
+			button?.removeAttribute("disabled");
+		}
 	}
 
 	private loadFavorites(): void {

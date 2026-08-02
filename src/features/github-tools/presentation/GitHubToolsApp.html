@@ -18,6 +18,10 @@
                     <span class="nav-item-container" slot="container" aria-hidden="true"></span>
                     <md-icon slot="start">star</md-icon> Favorites
                 </md-item>
+                <md-item id="nav-leaderboard" class="nav-item" data-view="leaderboard" role="button" tabindex="0">
+                    <span class="nav-item-container" slot="container" aria-hidden="true"></span>
+                    <md-icon slot="start">leaderboard</md-icon> Leaderboard
+                </md-item>
                 <md-item id="nav-mapper" class="nav-item" data-view="mapper" role="button" tabindex="0">
                     <span class="nav-item-container" slot="container" aria-hidden="true"></span>
                     <md-icon slot="start">terminal</md-icon> Repo Mapper
@@ -83,6 +87,12 @@
                         <span class="tool-card-copy">Visualize download counts and asset performance for GitHub releases.</span>
                         <span class="tool-link">Launch Tool <md-icon>arrow_forward</md-icon>
             </span>
+                    </md-outlined-card>
+                    <md-outlined-card class="tool-card" data-view="leaderboard" role="button" tabindex="0">
+                        <span class="tool-icon material-symbols-outlined">leaderboard</span>
+                        <span class="tool-card-title">GitHub Leaderboard</span>
+                        <span class="tool-card-copy">Meet leading GitHub developers and instantly find a username's local rank.</span>
+                        <span class="tool-link">Explore Rankings <md-icon>arrow_forward</md-icon></span>
                     </md-outlined-card>
                     <md-outlined-card class="tool-card wide" data-view="gitpatch" role="button" tabindex="0">
                         <span class="tool-icon material-symbols-outlined">difference</span>
@@ -292,6 +302,54 @@
                     </div>
                     <h2>No favorites yet</h2>
                     <p>Star repositories in Repo Mapper or Release Stats to save them here.</p>
+                </div>
+            </section>
+            <section id="view-leaderboard" class="view-section" aria-labelledby="leaderboard-title">
+                <div class="leaderboard-hero">
+                    <div>
+                        <p class="eyebrow">GitHub community</p>
+                        <h2 id="leaderboard-title">Discover developers making an impact.</h2>
+                        <p>Explore community rankings and search for any included GitHub username. Rankings are provided by committers.top.</p>
+                    </div>
+                    <div class="leaderboard-globe" aria-hidden="true"><md-icon>public</md-icon></div>
+                </div>
+                <div class="leaderboard-controls panel">
+                    <md-outlined-text-field id="leaderboard-search" type="search" label="Search GitHub username" placeholder="Try MihaiCristianCondrea" autocomplete="off">
+                        <md-icon slot="leading-icon">search</md-icon>
+                    </md-outlined-text-field>
+                    <div class="location-action">
+                        <md-outlined-button id="leaderboard-locate" type="button" class="secondary-button">
+                            <md-icon slot="icon">my_location</md-icon>Use my location
+                        </md-outlined-button>
+                        <span id="leaderboard-location-status" role="status">Showing Romania as a general starting point. Location is only requested when you choose.</span>
+                    </div>
+                </div>
+                <div id="leaderboard-loading" class="leaderboard-loading" role="status">
+                    <md-circular-progress indeterminate aria-label="Loading leaderboard"></md-circular-progress>
+                    <span>Loading the latest community ranking…</span>
+                </div>
+                <div id="leaderboard-content" class="leaderboard-content hidden">
+                    <div class="leaderboard-heading">
+                        <div>
+                            <p class="eyebrow">Current ranking</p>
+                            <h3 id="leaderboard-country">Romania</h3>
+                        </div>
+                        <div class="leaderboard-meta">
+                            <span id="leaderboard-count"></span>
+                            <span aria-hidden="true">•</span>
+                            <span id="leaderboard-updated"></span>
+                        </div>
+                    </div>
+                    <div id="leaderboard-error" class="error-box hidden">
+                        <md-icon>cloud_off</md-icon><span id="leaderboard-error-text"></span>
+                        <md-text-button id="leaderboard-retry" type="button" class="text-button">Retry</md-text-button>
+                    </div>
+                    <div id="leaderboard-list" class="leaderboard-list" aria-live="polite"></div>
+                    <div id="leaderboard-empty" class="leaderboard-empty hidden">
+                        <md-icon>person_search</md-icon>
+                        <h3>No ranking match</h3>
+                        <p id="leaderboard-empty-copy"></p>
+                    </div>
                 </div>
             </section>
         </div>
