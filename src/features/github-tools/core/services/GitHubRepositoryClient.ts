@@ -1,4 +1,4 @@
-import { formatMessage, strings } from "../../../../core/localization/Localization";
+import { formatMessage, strings } from "../../../../core/localization/Localization.ts";
 import type { CommitRef, RepositoryRef } from "../models/Repository";
 import type { PatchFile } from "../../tools/git-patch/domain/PatchFile";
 import type { ReleaseStats } from "../../tools/release-stats/domain/ReleaseStats";
