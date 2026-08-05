@@ -1,8 +1,6 @@
-import DataServices from "./DataServices";
 import GitHubToolsApp from "../features/github-tools/presentation/GitHubToolsApp";
 import { defineMaterialElements } from "../core/material/MaterialElements";
 import { activeLocale, strings } from "../core/localization/Localization";
-import GlobalState from "../core/state/GlobalState";
 
 if (!customElements.get("github-tools-app")) {
 	customElements.define("github-tools-app", GitHubToolsApp);
@@ -17,8 +15,6 @@ export const startApp = async (): Promise<void> => {
 
 	try {
 		await defineMaterialElements();
-		await DataServices.init();
-		await GlobalState.init();
 		onApplicationStart();
 	} catch (error) {
 		console.error(strings.common.app.consoleStartupError, error);

@@ -25,19 +25,19 @@ Favorites are shared by Repo Mapper and Release Stats and are stored in the brow
 
 ## Project structure
 
+The source follows the same high-level organization as the `profile` project: one root entry point, application orchestration under `app`, reusable foundations under `core`, and product code grouped by feature.
+
 ```text
 src/
+├── main.ts                         # Browser entry point
 ├── app/
-│   ├── main.ts                     # Browser entry point
 │   ├── App.ts                      # Startup and application mounting
 │   └── DataServices.ts             # Data adapter and use-case wiring
 ├── core/
 │   ├── components/                 # App-wide visual components
-│   ├── events/                     # Reusable event primitives
 │   ├── localization/               # Locale loading and formatting boundary
 │   ├── material/                   # Central Material Web registration
-│   ├── state/                      # Shared state infrastructure
-│   ├── typings/                    # Project-level declarations
+│   ├── types/                      # Project-level TypeScript declarations
 │   └── webcomponents/              # Base custom-element helpers
 ├── features/
 │   ├── app-showcase/               # Promoted Android applications
@@ -54,6 +54,8 @@ src/
         ├── favorites.json
         └── leaderboard.json
 ```
+
+Only implemented layers are kept in the tree. Empty placeholder packages and disconnected framework scaffolding are intentionally avoided.
 
 See [`docs/architecture.md`](docs/architecture.md) for runtime flow, routing, source-layer responsibilities, and integration boundaries.
 
@@ -123,4 +125,3 @@ The Vite base path is `/github-dev-tools/`, matching the GitHub Pages project si
 - Optional access tokens are trimmed and sent as bearer credentials only to GitHub API requests.
 - Authenticated responses are not retained in the shared in-memory response cache.
 - Favorites remain in the browser through `localStorage`.
-- The `references/` directory is research-only and is never imported into production code.

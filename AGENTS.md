@@ -4,19 +4,11 @@
 
 The production application source lives in `src/`. Runtime code must be implemented from project source and npm dependencies, not copied from reference snapshots.
 
-The browser entry point is `src/app/main.ts`. Application startup and mounting belong in `src/app/App.ts`; do not create a second competing entry point.
+The browser entry point is `src/main.ts`. Application startup and mounting belong in `src/app/App.ts`; do not create a second competing entry point.
 
-## Reference-only Material Web source
+Keep the high-level source layout aligned with the `profile` project: root entry point, application orchestration under `app`, reusable foundations under `core`, and product code grouped under `features`.
 
-The `references/` folder is preview/research only. It contains external open-source Material Web source code for comparison, documentation, and AI context.
-
-Rules for `references/`:
-
-- Do not edit files under `references/`.
-- Do not import, bundle, or execute code from `references/`.
-- Do not copy reference code blindly into application source.
-- Use the folder only to inspect implementation patterns and component APIs.
-- Consume Material Web components through npm imports from `@material/web`.
+Do not add empty `data`, `domain`, or `presentation` directories as placeholders. Add a layer only when it contains an implemented responsibility.
 
 ## Material Web imports
 
@@ -31,8 +23,8 @@ Do not override Material Web component structure, sizing, shape, padding, border
 The GitHub developer tools live under `src/features/github-tools/`:
 
 - `presentation/GitHubToolsApp.ts`, `.html`, and `.scss` form the shell for navigation, drawer state, shared layout, favorites wiring, and current tool switching.
-- `core/models/`, `core/services/`, and `core/components/` hold GitHub Tools code shared by multiple tools.
-- `tools/repo-mapper/`, `tools/release-stats/`, `tools/git-patch/`, and `tools/leaderboard/` hold tool-specific data, domain, and presentation code.
+- `core/models/` and `core/services/` hold GitHub Tools code shared by multiple tools.
+- `tools/repo-mapper/`, `tools/release-stats/`, `tools/git-patch/`, and `tools/leaderboard/` hold tool-specific implemented code.
 
 When adding GitHub-focused functionality, prefer placing shared GitHub parsing, client, and model code in `github-tools/core` and tool-only behavior in the matching `github-tools/tools/<tool-name>` package. Keep truly app-wide utilities in `src/core`, and keep favorites in `src/features/favorites` unless they become private to GitHub Tools.
 
@@ -67,14 +59,6 @@ See `docs/localization.md` for namespace ownership, coding examples, the transla
 
 When working on UI that uses Material Web components, do not recreate Material behavior with custom CSS or custom wrapper markup.
 
-Before adding styles or custom logic, check whether the Material Web component already provides the needed behavior through:
-
-- component choice
-- attributes
-- slots
-- supported design tokens
-- native selected, disabled, or toggle behavior
-
-Application CSS must not override Material Web component structure, shape, padding, sizing, icon placement, ripple, focus, disabled state, or animation unless there is a documented accessibility or layout exception.
+Before adding styles or custom logic, check whether the Material Web component already provides the needed behavior through component choice, attributes, slots, supported design tokens, or native selected, disabled, and toggle behavior.
 
 Prefer deleting interfering CSS over adding new CSS.

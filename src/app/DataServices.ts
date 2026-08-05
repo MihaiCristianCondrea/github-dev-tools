@@ -8,14 +8,9 @@ import { GetLeaderboardUseCase } from "../features/github-tools/tools/leaderboar
 import { SearchLeaderboardUsersUseCase } from "../features/github-tools/tools/leaderboard/domain/SearchLeaderboardUsersUseCase";
 
 export default class DataServices {
-	static github = new GitHubRepositoryClient();
-	static favorites = new ManageFavoritesUseCase(new LocalFavoritesRepository());
-	static promotedApps = new GetPromotedAppsUseCase(new RemoteAppsRepository());
-	static leaderboard = new GetLeaderboardUseCase(new RemoteLeaderboardRepository());
-	static searchLeaderboard = new SearchLeaderboardUsersUseCase();
-
-	static async init(): Promise<void> {
-		// Data services are stateless today, but this lifecycle hook keeps the app
-		// ready for future persistence, cache, or API-client initialization.
-	}
+	static readonly github = new GitHubRepositoryClient();
+	static readonly favorites = new ManageFavoritesUseCase(new LocalFavoritesRepository());
+	static readonly promotedApps = new GetPromotedAppsUseCase(new RemoteAppsRepository());
+	static readonly leaderboard = new GetLeaderboardUseCase(new RemoteLeaderboardRepository());
+	static readonly searchLeaderboard = new SearchLeaderboardUsersUseCase();
 }
