@@ -135,8 +135,35 @@ particle-network-background { position: fixed; inset: 0; z-index: 0; pointer-eve
 .theme-option { --md-icon-button-icon-color: var(--text-color); border-radius: 999px; }
 .theme-option:hover { background: var(--surface-hover); }
 .theme-option[data-active] { --md-icon-button-state-layer-color: var(--text-color); --md-icon-button-icon-color: var(--text-color); background: var(--selected); }
-.drawer-links { display: flex; align-items: center; justify-content: center; gap: 6px; font-size: 12px; }
-.drawer-links a { color: var(--primary); }
+.drawer-links { display: flex; align-items: center; justify-content: center; gap: 2px; font-size: 12px; }
+.drawer-links a {
+	display: inline-flex;
+	align-items: center;
+	justify-content: center;
+	min-height: 32px;
+	padding: 4px 8px;
+	border-radius: 8px;
+	color: var(--muted-text);
+	font-weight: 500;
+	line-height: 16px;
+	text-decoration: none;
+	white-space: nowrap;
+	transition: background-color .15s ease, color .15s ease;
+}
+.drawer-links a:hover {
+	background: var(--surface-hover);
+	color: var(--text-color);
+}
+.drawer-links a:active { background: var(--selected); }
+.drawer-links a:focus-visible {
+	outline: 2px solid var(--primary);
+	outline-offset: 1px;
+}
+.drawer-links span {
+	color: var(--outline);
+	font-size: 10px;
+	user-select: none;
+}
 
 .nav-item { position: relative; isolation: isolate; width: 100%; --md-item-leading-space: 16px; --md-item-trailing-space: 16px; --md-item-top-space: 12px; --md-item-bottom-space: 12px; }
 .nav-item-container { position: absolute; inset: 0; z-index: -1; border-radius: 999px; pointer-events: none; }
