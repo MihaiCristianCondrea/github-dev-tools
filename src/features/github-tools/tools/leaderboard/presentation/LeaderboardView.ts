@@ -8,6 +8,8 @@ import {
 } from "../../../../../core/localization/Localization";
 import type { Leaderboard, RankedUser } from "../domain/Leaderboard";
 
+type FilterChipElement = HTMLElement & { selected?: boolean };
+
 const AVATAR_SIZE = 48;
 
 export class LeaderboardView {
@@ -83,9 +85,17 @@ export class LeaderboardView {
 
 	// Chips are rendered from the requested country rather than from their own toggle
 	// state, so clicking the active chip cannot leave the filter row without a selection.
+	//
+	// `selected` is a reflecting Lit property: the chip flips the property on click and
+	// only writes the attribute on its next update. Writing the attribute here would be
+	// a no-op that the pending reflection then overwrites, so set the property instead.
 	syncCountryChips(countrySlug: string): void {
-		this.root.querySelectorAll<HTMLElement>("#leaderboard-country-filters md-filter-chip")
-			.forEach((chip) => chip.toggleAttribute("selected", chip.dataset.countrySlug === countrySlug));
+		this.root.querySelectorAll<FilterChipElement>("#leaderboard-country-filters md-filter-chip")
+			.forEach((chip) => {
+				const selected = chip.dataset.countrySlug === countrySlug;
+				if ("selected" in chip) chip.selected = selected;
+				else chip.toggleAttribute("selected", selected);
+			});
 	}
 
 	showError(message: string): void {

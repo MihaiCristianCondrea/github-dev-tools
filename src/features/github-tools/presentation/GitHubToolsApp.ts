@@ -254,7 +254,7 @@ export default class GitHubToolsApp extends WebComponent {
 			if (!isEmptyHashRoute(window.location.hash)) {
 				window.history.replaceState(null, "", hashFromViewId("home"));
 			}
-			this.activateView("home", undefined, false);
+			this.activateView("home", false);
 			return;
 		}
 
@@ -262,16 +262,18 @@ export default class GitHubToolsApp extends WebComponent {
 	}
 
 	private activateViewFromHash(closeDrawer = true): void {
-		this.activateView(viewIdFromHash(window.location.hash), undefined, closeDrawer);
+		this.activateView(viewIdFromHash(window.location.hash), closeDrawer);
 	}
 
 	// The hash is the single source of truth for the active view: writing it lets the
 	// hashchange handler perform the activation exactly once.
 	private navigateTo(viewId: ViewId, url?: string): void {
+		// Seed the tool input before navigating: the hashchange activation that follows
+		// carries no payload of its own.
 		if (url) this.presetToolUrl(viewId, url);
 		const nextHash = hashFromViewId(viewId);
 		if (window.location.hash === nextHash) {
-			this.activateView(viewId, url);
+			this.activateView(viewId);
 			return;
 		}
 		window.location.hash = nextHash;
@@ -285,7 +287,7 @@ export default class GitHubToolsApp extends WebComponent {
 		this.handleUrlInput(viewId);
 	}
 
-	private activateView(viewId: ViewId, url?: string, closeDrawer = true): void {
+	private activateView(viewId: ViewId, closeDrawer = true): void {
 		this.state.currentView = viewId;
 		this.selectAll(".view-section").forEach((section) => section.classList.remove("active"));
 		this.select(`#view-${viewId}`)?.classList.add("active");
@@ -301,7 +303,6 @@ export default class GitHubToolsApp extends WebComponent {
 		activeNav?.querySelector("md-icon, .material-symbols-outlined")?.classList.add("filled-icon");
 		const topbarTitle = this.select("#topbar-title");
 		if (topbarTitle) topbarTitle.textContent = VIEW_TITLES[viewId];
-		if (url) this.presetToolUrl(viewId, url);
 		if (viewId === "leaderboard") this.leaderboard.activate();
 		if (closeDrawer) this.toggleDrawer(false);
 	}

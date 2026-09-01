@@ -6,44 +6,48 @@ export class AppCard extends HTMLElement {
 		this.render(value);
 	}
 
+	// The structure is written once as markup and every value is assigned through
+	// textContent or a property, so remote copy and URLs are never parsed as HTML.
 	private render(app: AppItem): void {
-		const icon = app.iconUrl
-			? `<img src="${this.escapeAttribute(app.iconUrl)}" alt="" loading="lazy" />`
-			: "<md-icon class=\"app-icon-placeholder\">apps</md-icon>";
-		const openLabel = formatMessage(strings.common.appShowcase.openOnGooglePlay, { appName: app.name });
-		const category = app.category || strings.common.appShowcase.defaultCategory;
-		const description = app.description || strings.common.appShowcase.defaultDescription;
-
-		// Material buttons support link-button attributes; keep actions as a single interactive element.
 		this.innerHTML = `
 			<md-outlined-card class="app-card">
-				<div class="app-icon">${icon}</div>
+				<div class="app-icon"></div>
 				<div class="app-content">
-					<h3>${this.escape(app.name)}</h3>
-					<p class="app-category">${this.escape(category)}</p>
-					<p>${this.escape(description)}</p>
+					<h3></h3>
+					<p class="app-category"></p>
+					<p class="app-description"></p>
 				</div>
-				<md-outlined-button
-					class="play-link"
-					href="${this.escapeAttribute(app.storeUrl)}"
-					target="_blank"
-					aria-label="${this.escapeAttribute(openLabel)}"
-				>
+				<md-outlined-button class="play-link" target="_blank" rel="noopener">
 					<md-icon slot="icon">store</md-icon>
-					${strings.common.appShowcase.googlePlay}
 				</md-outlined-button>
 			</md-outlined-card>
 		`;
+
+		this.querySelector(".app-icon")!.append(this.createIcon(app.iconUrl));
+		this.querySelector("h3")!.textContent = app.name;
+		this.querySelector(".app-category")!.textContent = app.category || strings.common.appShowcase.defaultCategory;
+		this.querySelector(".app-description")!.textContent = app.description || strings.common.appShowcase.defaultDescription;
+
+		const link = this.querySelector<HTMLElement>(".play-link")!;
+		link.setAttribute("href", app.storeUrl);
+		link.setAttribute("aria-label", formatMessage(strings.common.appShowcase.openOnGooglePlay, { appName: app.name }));
+		link.append(document.createTextNode(strings.common.appShowcase.googlePlay));
 	}
 
-	private escape(value: string): string {
-		const element = document.createElement("span");
-		element.textContent = value;
-		return element.innerHTML;
-	}
+	private createIcon(iconUrl: string): HTMLElement {
+		if (!iconUrl) {
+			const placeholder = document.createElement("md-icon");
+			placeholder.className = "app-icon-placeholder";
+			placeholder.textContent = "apps";
+			return placeholder;
+		}
 
-	private escapeAttribute(value: string): string {
-		return this.escape(value).replace(/"/g, "&quot;");
+		const image = document.createElement("img");
+		image.src = iconUrl;
+		image.alt = "";
+		image.loading = "lazy";
+		image.decoding = "async";
+		return image;
 	}
 }
 
