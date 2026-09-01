@@ -7,7 +7,7 @@ import { ManageFavoritesUseCase } from "../../../../src/features/favorites/domai
 class MemoryFavoritesRepository implements FavoritesRepository {
 	favorites: FavoriteRepository[] = [];
 	load(): FavoriteRepository[] { return this.favorites; }
-	save(favorites: FavoriteRepository[]): void { this.favorites = favorites; }
+	save(favorites: FavoriteRepository[]): boolean { this.favorites = favorites; return true; }
 }
 
 test("favorites are matched case-insensitively", () => {

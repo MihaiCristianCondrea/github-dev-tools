@@ -4,6 +4,9 @@ import type { GetPromotedAppsUseCase } from "../domain/usecases/GetPromotedAppsU
 import type { AppCard } from "./AppCard";
 import "./AppCard";
 
+const STORE_DEVELOPER_URL = "https://play.google.com/store/apps/dev?id=5390214922640123642";
+const SHOWCASE_CARD_COUNT = 4;
+
 export class AppShowcaseSection extends HTMLElement {
 	private getPromotedAppsUseCase?: GetPromotedAppsUseCase;
 	private isLoading = false;
@@ -28,7 +31,7 @@ export class AppShowcaseSection extends HTMLElement {
 
 		this.isLoading = true;
 		try {
-			const apps = await this.getPromotedAppsUseCase.execute();
+			const apps = await this.getPromotedAppsUseCase.execute(SHOWCASE_CARD_COUNT);
 			this.renderApps(apps);
 		} catch (error) {
 			console.error(error);
@@ -39,12 +42,14 @@ export class AppShowcaseSection extends HTMLElement {
 	}
 
 	private renderLoading(): void {
-		this.innerHTML = `
-			<section class="showcase-section" aria-labelledby="showcase-title">
-				${this.renderHeader()}
-				<div class="showcase-loading"><md-circular-progress indeterminate aria-label="${strings.common.appShowcase.loadingLabel}"></md-circular-progress><span>${strings.common.appShowcase.loading}</span></div>
-			</section>
-		`;
+		const body = this.renderShell();
+		body.className = "showcase-loading";
+		const progress = document.createElement("md-circular-progress");
+		progress.setAttribute("indeterminate", "");
+		progress.setAttribute("aria-label", strings.common.appShowcase.loadingLabel);
+		const label = document.createElement("span");
+		label.textContent = strings.common.appShowcase.loading;
+		body.append(progress, label);
 	}
 
 	private renderApps(apps: AppItem[]): void {
@@ -53,41 +58,40 @@ export class AppShowcaseSection extends HTMLElement {
 			return;
 		}
 
-		this.innerHTML = `
-			<section class="showcase-section" aria-labelledby="showcase-title">
-				${this.renderHeader()}
-				<div class="apps-grid"></div>
-			</section>
-		`;
-
-		const grid = this.querySelector(".apps-grid");
-		if (!grid) return;
-		apps.slice(0, 4).forEach((app) => {
+		const grid = this.renderShell();
+		grid.className = "apps-grid";
+		apps.forEach((app) => {
 			const card = document.createElement("app-card") as AppCard;
 			card.app = app;
 			grid.append(card);
 		});
 	}
 
-	private renderHeader(): string {
-		return `
-			<div class="section-heading">
-				<h2 id="showcase-title">${strings.common.appShowcase.title}</h2>
-				<md-outlined-button class="view-all-link" href="https://play.google.com/store/apps/dev?id=5390214922640123642" target="_blank" aria-label="${strings.common.appShowcase.viewAllLabel}">
-					<md-icon slot="icon">open_in_new</md-icon>
-					${strings.common.appShowcase.viewAll}
-				</md-outlined-button>
-			</div>
-		`;
+	private renderError(message = strings.common.appShowcase.error): void {
+		const body = this.renderShell();
+		body.className = "showcase-error";
+		body.textContent = message;
 	}
 
-	private renderError(message = strings.common.appShowcase.error): void {
+	// Writes the section structure once and returns the empty body element the caller
+	// fills, so no locale copy or remote value is ever interpolated into markup.
+	private renderShell(): HTMLElement {
 		this.innerHTML = `
 			<section class="showcase-section" aria-labelledby="showcase-title">
-				${this.renderHeader()}
-				<div class="showcase-error">${message}</div>
+				<div class="section-heading">
+					<h2 id="showcase-title"></h2>
+					<md-outlined-button class="view-all-link" href="${STORE_DEVELOPER_URL}" target="_blank" rel="noopener">
+						<md-icon slot="icon">open_in_new</md-icon>
+					</md-outlined-button>
+				</div>
+				<div></div>
 			</section>
 		`;
+		this.querySelector("#showcase-title")!.textContent = strings.common.appShowcase.title;
+		const viewAll = this.querySelector<HTMLElement>(".view-all-link")!;
+		viewAll.setAttribute("aria-label", strings.common.appShowcase.viewAllLabel);
+		viewAll.append(document.createTextNode(strings.common.appShowcase.viewAll));
+		return this.querySelector<HTMLElement>(".section-heading + div")!;
 	}
 }
 

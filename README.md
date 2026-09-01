@@ -33,19 +33,18 @@ src/
 │   └── DataServices.ts             # Data adapter and use-case wiring
 ├── core/
 │   ├── components/                 # App-wide visual components
-│   ├── events/                     # Reusable event primitives
 │   ├── localization/               # Locale loading and formatting boundary
 │   ├── material/                   # Central Material Web registration
-│   ├── state/                      # Shared state infrastructure
+│   ├── theme/                      # Theme preference and document metadata
 │   ├── typings/                    # Project-level declarations
 │   └── webcomponents/              # Base custom-element helpers
 ├── features/
 │   ├── app-showcase/               # Promoted Android applications
 │   ├── favorites/                  # Favorite repository persistence and UI
 │   └── github-tools/
-│       ├── core/                   # Shared GitHub models and services
+│       ├── core/                   # Shared GitHub models, services, and UI helpers
 │       ├── presentation/           # Main shell and navigation
-│       └── tools/                  # Mapper, releases, patch, and leaderboard domains
+│       └── tools/                  # Mapper, releases, patch, and leaderboard packages
 └── locales/
     ├── README.md
     └── en/

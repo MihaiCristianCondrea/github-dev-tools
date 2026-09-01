@@ -51,6 +51,8 @@
     "viewAll": "View all apps",
     "error": "Could not load app recommendations. Please try again later.",
     "openOnGooglePlay": "Open {appName} on Google Play",
-    "googlePlay": "Google Play"
+    "googlePlay": "Google Play",
+    "defaultCategory": "Android app",
+    "defaultDescription": "Explore another lightweight app from Mihai-Cristian."
   }
 }

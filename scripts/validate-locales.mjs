@@ -205,6 +205,17 @@ for (const filePath of sourceFiles) {
 			}
 		}
 
+		// Mappers translate payload shapes. Any prose literal there is copy that belongs
+		// in a locale namespace, so flag multi-word English strings outside diagnostics.
+		if (/\/data\/mappers\//.test(fileName)) {
+			const withoutDiagnostics = content.replace(/console\.[a-z]+\([\s\S]*?\);/g, "");
+			for (const match of withoutDiagnostics.matchAll(/(["'`])((?:[^"'`\\\n]|\\.)*)\1/g)) {
+				if (/[A-Za-z]{2,}[ ][A-Za-z]/.test(match[2])) {
+					addError(`${fileName} contains user-facing copy: "${match[2]}". Move it to a locale namespace and keep mappers free of copy.`);
+				}
+			}
+		}
+
 		for (const match of content.matchAll(/\.innerHTML\s*=\s*`([\s\S]*?)`/g)) {
 			const staticTemplate = match[1].replace(/\$\{[\s\S]*?\}/g, "{{dynamic.value}}");
 			validateHtml(`${fileName} inline HTML`, staticTemplate, new Set(["dynamic.value"]));

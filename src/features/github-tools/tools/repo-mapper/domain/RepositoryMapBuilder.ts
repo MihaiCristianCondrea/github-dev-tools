@@ -1,8 +1,9 @@
 import type { RepositoryMapFormat, RepositoryMapResult, RepositoryTreeItem } from "./RepositoryTree";
 
-interface DirectoryNode {
-	[key: string]: DirectoryNode | null;
-}
+// Path segments come from repository data and can collide with inherited object keys
+// such as "constructor" or "toString". Directory nodes are therefore maps rather than
+// object literals, so membership tests only ever see real children.
+type DirectoryNode = Map<string, DirectoryNode | null>;
 
 export default class RepositoryMapBuilder {
 	static build(paths: RepositoryTreeItem[], format: RepositoryMapFormat): RepositoryMapResult {
@@ -23,24 +24,25 @@ export default class RepositoryMapBuilder {
 	}
 
 	private static buildAscii(paths: RepositoryTreeItem[]): string {
-		const structure: DirectoryNode = {};
+		const structure: DirectoryNode = new Map();
 		paths.forEach((item) => {
 			const parts = item.path.split("/").filter(Boolean);
 			let current = structure;
 			parts.forEach((part, index) => {
 				const isLeaf = index === parts.length - 1;
-				if (!(part in current)) current[part] = isLeaf && item.type === "blob" ? null : {};
-				const next = current[part];
-				if (next !== null) current = next;
+				const isFile = isLeaf && item.type === "blob";
+				if (!current.has(part)) current.set(part, isFile ? null : new Map());
+				const next = current.get(part);
+				if (next != null) current = next;
 			});
 		});
 		return this.buildDirectoryString(structure);
 	}
 
 	private static buildDirectoryString(structure: DirectoryNode, prefix = ""): string {
-		const keys = Object.keys(structure).sort((a, b) => {
-			const aIsFolder = structure[a] !== null;
-			const bIsFolder = structure[b] !== null;
+		const keys = Array.from(structure.keys()).sort((a, b) => {
+			const aIsFolder = structure.get(a) !== null;
+			const bIsFolder = structure.get(b) !== null;
 			if (aIsFolder && !bIsFolder) return -1;
 			if (!aIsFolder && bIsFolder) return 1;
 			return a.localeCompare(b);
@@ -48,9 +50,10 @@ export default class RepositoryMapBuilder {
 		return keys
 			.map((key, index) => {
 				const isLast = index === keys.length - 1;
-				const child = structure[key];
+				const child = structure.get(key);
 				const line = `${prefix}${isLast ? "└── " : "├── "}${key}`;
-				return child === null ? line : `${line}\n${this.buildDirectoryString(child, prefix + (isLast ? "    " : "│   "))}`;
+				if (child == null || child.size === 0) return line;
+				return `${line}\n${this.buildDirectoryString(child, prefix + (isLast ? "    " : "│   "))}`;
 			})
 			.join("\n");
 	}

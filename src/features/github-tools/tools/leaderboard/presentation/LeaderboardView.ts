@@ -8,6 +8,10 @@ import {
 } from "../../../../../core/localization/Localization";
 import type { Leaderboard, RankedUser } from "../domain/Leaderboard";
 
+type FilterChipElement = HTMLElement & { selected?: boolean };
+
+const AVATAR_SIZE = 48;
+
 export class LeaderboardView {
 	constructor(private readonly root: ShadowRoot) {}
 
@@ -30,11 +34,31 @@ export class LeaderboardView {
 			: strings.leaderboard.ranking.latestAvailable;
 	}
 
-	renderUsers(users: RankedUser[], country: string, hasQuery: boolean): void {
+	// Clears the ranking while a different country loads, so a failed request can never
+	// leave the previous country's rows under the new country's error message.
+	clearResults(): void {
+		this.element("#leaderboard-list").textContent = "";
+		this.element("#leaderboard-empty").classList.add("hidden");
+		this.element("#leaderboard-pagination").classList.add("hidden");
+		this.element("#leaderboard-status").textContent = "";
+	}
+
+	renderUsers(users: RankedUser[], country: string, hasQuery: boolean, totalResults: number): void {
 		const list = this.element("#leaderboard-list");
 		const empty = this.element("#leaderboard-empty");
 		list.textContent = "";
 		empty.classList.toggle("hidden", users.length > 0);
+
+		// The status line is the live region: announcing a count keeps assistive tech
+		// useful while typing, where re-announcing every row would not.
+		this.element("#leaderboard-status").textContent = hasQuery
+			? formatEnglishPlural(
+				totalResults,
+				strings.leaderboard.ranking.resultCount_one,
+				strings.leaderboard.ranking.resultCount_other,
+			)
+			: "";
+
 		if (users.length === 0) {
 			this.element("#leaderboard-empty-copy").textContent = formatMessage(
 				strings.leaderboard.ranking.usernameNotIncluded,
@@ -43,7 +67,9 @@ export class LeaderboardView {
 			return;
 		}
 
-		users.forEach((user) => list.append(this.createUserRow(user, country, hasQuery)));
+		const rows = document.createDocumentFragment();
+		users.forEach((user) => rows.append(this.createUserRow(user, country, hasQuery)));
+		list.append(rows);
 	}
 
 	renderPagination(page: number, pageCount: number, resultCount: number): void {
@@ -57,6 +83,21 @@ export class LeaderboardView {
 		this.element("#leaderboard-next").toggleAttribute("disabled", page >= pageCount);
 	}
 
+	// Chips are rendered from the requested country rather than from their own toggle
+	// state, so clicking the active chip cannot leave the filter row without a selection.
+	//
+	// `selected` is a reflecting Lit property: the chip flips the property on click and
+	// only writes the attribute on its next update. Writing the attribute here would be
+	// a no-op that the pending reflection then overwrites, so set the property instead.
+	syncCountryChips(countrySlug: string): void {
+		this.root.querySelectorAll<FilterChipElement>("#leaderboard-country-filters md-filter-chip")
+			.forEach((chip) => {
+				const selected = chip.dataset.countrySlug === countrySlug;
+				if ("selected" in chip) chip.selected = selected;
+				else chip.toggleAttribute("selected", selected);
+			});
+	}
+
 	showError(message: string): void {
 		this.element("#leaderboard-error-text").textContent = message;
 		this.element("#leaderboard-error").classList.remove("hidden");
@@ -64,6 +105,10 @@ export class LeaderboardView {
 
 	hideError(): void {
 		this.element("#leaderboard-error").classList.add("hidden");
+	}
+
+	setLocating(locating: boolean): void {
+		this.element("#leaderboard-locate").toggleAttribute("disabled", locating);
 	}
 
 	private createUserRow(user: RankedUser, country: string, emphasized: boolean): HTMLAnchorElement {
@@ -81,11 +126,6 @@ export class LeaderboardView {
 		const rank = document.createElement("span");
 		rank.className = "leaderboard-rank";
 		rank.textContent = `#${formatNumber(user.rank)}`;
-		const avatar = document.createElement("img");
-		avatar.className = "leaderboard-avatar";
-		avatar.src = `https://github.com/${encodeURIComponent(user.username)}.png?size=80`;
-		avatar.alt = "";
-		avatar.loading = "lazy";
 		const details = document.createElement("span");
 		details.className = "leaderboard-user-details";
 		const name = document.createElement("strong");
@@ -98,8 +138,29 @@ export class LeaderboardView {
 		details.append(name, position);
 		const icon = document.createElement("md-icon");
 		icon.textContent = "open_in_new";
-		link.append(rank, avatar, details, icon);
+		link.append(rank, this.createAvatar(user.username), details, icon);
 		return link;
+	}
+
+	// Avatars 404 for renamed or deleted accounts, so the image swaps itself for the
+	// placeholder icon instead of leaving a broken-image glyph in the row.
+	private createAvatar(username: string): HTMLElement {
+		const avatar = document.createElement("img");
+		avatar.className = "leaderboard-avatar";
+		avatar.src = `https://github.com/${encodeURIComponent(username)}.png?size=80`;
+		avatar.alt = "";
+		avatar.loading = "lazy";
+		avatar.decoding = "async";
+		avatar.width = AVATAR_SIZE;
+		avatar.height = AVATAR_SIZE;
+		avatar.addEventListener("error", () => {
+			const fallback = document.createElement("md-icon");
+			fallback.className = "leaderboard-avatar leaderboard-avatar-fallback";
+			fallback.textContent = "person";
+			fallback.setAttribute("aria-hidden", "true");
+			avatar.replaceWith(fallback);
+		}, { once: true });
+		return avatar;
 	}
 
 	private element(selector: string): HTMLElement {

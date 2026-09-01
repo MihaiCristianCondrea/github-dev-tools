@@ -39,25 +39,26 @@ export class AndroidAppsMapper {
 		};
 	}
 
+	// Mappers translate payload shapes, never copy. Missing values return an empty
+	// string so the presentation layer can substitute a localized fallback.
 	private mapCategory(category: string | AndroidAppCategoryDto | undefined): string {
 		if (!category) {
-			return "Android app";
+			return "";
 		}
 
 		if (typeof category === "string") {
 			return category;
 		}
 
-		return category.label ?? category.category_id ?? "Android app";
+		return category.label ?? category.category_id ?? "";
 	}
 
 	private shortDescription(description: string | undefined): string {
-		const fallback = "Explore another lightweight app from Mihai-Cristian.";
 		if (!description) {
-			return fallback;
+			return "";
 		}
 
 		const firstLine = description.split("\n").find((line) => line.trim());
-		return firstLine?.trim() ?? fallback;
+		return firstLine?.trim() ?? "";
 	}
 }

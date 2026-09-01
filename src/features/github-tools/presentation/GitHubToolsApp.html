@@ -142,7 +142,7 @@
                         </div>
                     </form>
                 </div>
-                <div id="mapper-error" class="error-box hidden">
+                <div id="mapper-error" class="error-box hidden" role="alert">
                     <md-icon>error</md-icon>
                     <span id="mapper-error-text"></span>
                 </div>
@@ -201,7 +201,7 @@
                         </div>
                     </form>
                 </div>
-                <div id="releases-error" class="error-box hidden">
+                <div id="releases-error" class="error-box hidden" role="alert">
                     <md-icon>error</md-icon>
                     <span id="releases-error-text"></span>
                 </div>
@@ -256,7 +256,7 @@
                         </div>
                     </form>
                 </div>
-                <div id="patch-error" class="error-box hidden">
+                <div id="patch-error" class="error-box hidden" role="alert">
                     <md-icon>error</md-icon>
                     <span id="patch-error-text"></span>
                 </div>
@@ -287,6 +287,10 @@
                 </div>
             </section>
             <section id="view-favorites" class="view-section" aria-label="{{favorites.ariaLabel}}">
+                <div id="favorites-error" class="error-box hidden" role="alert" aria-label="{{favorites.errorLabel}}">
+                    <md-icon>error</md-icon>
+                    <span id="favorites-error-text"></span>
+                </div>
                 <div id="favorites-grid" class="favorites-grid"></div>
                 <div id="favorites-empty" class="empty-state hidden">
                     <div class="empty-state-icon">
@@ -297,14 +301,12 @@
                 </div>
             </section>
             <section id="view-leaderboard" class="view-section" aria-labelledby="leaderboard-title">
-                <div class="leaderboard-hero">
-                    <div>
-                        <p class="eyebrow">{{leaderboard.hero.eyebrow}}</p>
-                        <h2 id="leaderboard-title">{{leaderboard.hero.title}}</h2>
-                        <p>{{leaderboard.hero.description}}</p>
-                    </div>
+                <div class="hero">
+                    <p class="eyebrow">{{leaderboard.hero.eyebrow}}</p>
+                    <h2 id="leaderboard-title">{{leaderboard.hero.title}}</h2>
+                    <p>{{leaderboard.hero.description}}</p>
                 </div>
-                <div class="leaderboard-controls">
+                <div class="panel leaderboard-controls">
                     <div class="leaderboard-search-actions">
                         <md-outlined-text-field id="leaderboard-search" type="search" label="{{leaderboard.search.label}}" placeholder="{{leaderboard.search.placeholder}}" autocomplete="off">
                             <md-icon slot="leading-icon">search</md-icon>
@@ -315,7 +317,7 @@
                     </div>
                     <div class="leaderboard-filters" aria-label="{{leaderboard.filters.ariaLabel}}">
                         <p class="leaderboard-filter-label">{{leaderboard.filters.heading}}</p>
-                        <div class="leaderboard-chip-scroller" tabindex="0" aria-label="{{leaderboard.filters.popularLocations}}">
+                        <div class="leaderboard-chip-scroller" role="group" tabindex="0" aria-label="{{leaderboard.filters.popularLocations}}">
                             <md-chip-set id="leaderboard-country-filters">
                                 <md-filter-chip label="{{leaderboard.filters.global}}" data-country-slug="global" data-country-name="{{leaderboard.filters.global}}" selected></md-filter-chip>
                                 <md-filter-chip label="{{leaderboard.filters.unitedStates}}" data-country-slug="united_states" data-country-name="{{leaderboard.filters.unitedStates}}"></md-filter-chip>
@@ -345,15 +347,16 @@
                             <span id="leaderboard-updated"></span>
                         </div>
                     </div>
-                    <div id="leaderboard-error" class="error-box hidden">
+                    <div id="leaderboard-error" class="error-box hidden" role="alert">
                         <md-icon>cloud_off</md-icon><span id="leaderboard-error-text"></span>
                         <md-text-button id="leaderboard-retry" type="button" class="text-button">{{common.actions.retry}}</md-text-button>
                     </div>
-                    <div id="leaderboard-list" class="leaderboard-list" aria-live="polite"></div>
+                    <p id="leaderboard-status" class="leaderboard-status" role="status" aria-live="polite"></p>
+                    <div id="leaderboard-list" class="leaderboard-list"></div>
                     <nav id="leaderboard-pagination" class="leaderboard-pagination hidden" aria-label="{{leaderboard.ranking.paginationLabel}}">
                         <md-outlined-button id="leaderboard-previous" type="button"><md-icon slot="icon">chevron_left</md-icon>{{common.actions.previous}}</md-outlined-button>
                         <span id="leaderboard-page-status" aria-live="polite"></span>
-                        <md-outlined-button id="leaderboard-next" type="button">{{common.actions.next}}<md-icon slot="icon">chevron_right</md-icon></md-outlined-button>
+                        <md-outlined-button id="leaderboard-next" type="button" trailing-icon>{{common.actions.next}}<md-icon slot="icon">chevron_right</md-icon></md-outlined-button>
                     </nav>
                     <div id="leaderboard-empty" class="leaderboard-empty hidden">
                         <md-icon>person_search</md-icon>

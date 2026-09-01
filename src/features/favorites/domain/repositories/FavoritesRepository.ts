@@ -2,5 +2,6 @@ import type { FavoriteRepository } from "../models/FavoriteRepository";
 
 export interface FavoritesRepository {
 	load(): FavoriteRepository[];
-	save(favorites: FavoriteRepository[]): void;
+	// Returns false when the favorites could not be persisted.
+	save(favorites: FavoriteRepository[]): boolean;
 }

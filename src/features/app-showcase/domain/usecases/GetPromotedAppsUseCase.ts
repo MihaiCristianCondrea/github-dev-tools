@@ -4,8 +4,10 @@ import type { AppsRepository } from "../repositories/AppsRepository";
 export class GetPromotedAppsUseCase {
 	constructor(private readonly repository: AppsRepository) {}
 
-	async execute(): Promise<AppItem[]> {
+	// The caller decides how many apps it can show, so no promoted app is fetched and
+	// then silently discarded by a limit the presentation layer does not know about.
+	async execute(limit?: number): Promise<AppItem[]> {
 		const apps = await this.repository.getPromotedApps();
-		return apps.slice(0, 6);
+		return typeof limit === "number" ? apps.slice(0, limit) : apps;
 	}
 }

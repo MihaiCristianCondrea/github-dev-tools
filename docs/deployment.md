@@ -32,6 +32,23 @@ Common causes:
 - **Deployment/source mismatch**: the live Pages artifact may not correspond to the repository snapshot currently being inspected.
 - **Wrong base path**: less likely here because Vite is configured for `/github-dev-tools/`, but still verify built URLs if the repo name changes.
 
+## Third-party runtime services
+
+The deployed page is static, but it talks to services outside this repository at
+runtime. Each one sees the visitor's IP address and request:
+
+| Service | Used by | Notes |
+| --- | --- | --- |
+| `api.github.com` | Repo Mapper, Release Stats, Git Patch | Called directly. An optional user-supplied token is sent as a bearer credential and is never cached. |
+| `committers.top` | Leaderboard | Primary ranking source, requested directly. |
+| `api.allorigins.win`, `corsproxy.io` | Leaderboard | CORS passthrough fallbacks used only when the direct request fails. They are uncontrolled third parties; prefer first-party infrastructure or a cached snapshot over adding more of them. |
+| `api.bigdatacloud.net` | Leaderboard "Use my location" | Reverse geocoding, only after the visitor grants location permission. |
+| `mihaicristiancondrea.github.io` | Home app showcase | Promoted apps JSON. |
+| `fonts.googleapis.com`, `fonts.gstatic.com` | Whole app | Web fonts and the Material Symbols icon font. |
+
+Adding a service to this list is a privacy decision, not just a technical one. Record
+it here when the set changes.
+
 ## When the live site and repo disagree
 
 If console behavior does not match the source currently visible in GitHub:
