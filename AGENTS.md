@@ -34,6 +34,11 @@ The GitHub developer tools live under `src/features/github-tools/`:
 - `core/models/`, `core/services/`, and `core/components/` hold GitHub Tools code shared by multiple tools.
 - `tools/repo-mapper/`, `tools/release-stats/`, `tools/git-patch/`, and `tools/leaderboard/` hold tool-specific data, domain, and presentation code.
 
+The shell coordinates; it does not render tool output. Each tool owns a view class under
+its own `presentation/` folder that writes into the shared template, and a tool with its
+own state owns a controller beside it, as the leaderboard does. Put new tool rendering
+and tool state there rather than in the shell.
+
 When adding GitHub-focused functionality, prefer placing shared GitHub parsing, client, and model code in `github-tools/core` and tool-only behavior in the matching `github-tools/tools/<tool-name>` package. Keep truly app-wide utilities in `src/core`, and keep favorites in `src/features/favorites` unless they become private to GitHub Tools.
 
 ## Localization
@@ -56,6 +61,7 @@ Rules:
 - Preserve every placeholder name across all locale values.
 - Keep Material icon names, routes, IDs, CSS classes, URLs, API values, repository data, release data, usernames, and country slugs outside localization.
 - Internal diagnostics may remain technical only when the UI replaces them with localized user-facing copy.
+- Data mappers translate payload shapes and must contain no copy. Return an empty value and let the presentation layer supply a localized fallback.
 - Keep `index.html` and `public/manifest.webmanifest` fallback metadata synchronized with `common.app`.
 - Adding a locale directory does not activate language switching. Do not expose an incomplete locale in the UI.
 - Run `npm run validate:locales` after changing resources or user-facing UI.

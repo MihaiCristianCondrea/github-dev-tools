@@ -22,22 +22,15 @@ import { RepoMapperView } from "../tools/repo-mapper/presentation/RepoMapperView
 import GitHubUrlParser from "../core/services/GitHubUrlParser";
 import RepositoryMapBuilder from "../tools/repo-mapper/domain/RepositoryMapBuilder";
 import { BrowserCountryLocator } from "../tools/leaderboard/data/BrowserCountryLocator";
-import type { Leaderboard } from "../tools/leaderboard/domain/Leaderboard";
-import { LeaderboardView } from "../tools/leaderboard/presentation/LeaderboardView";
+import { LeaderboardController } from "../tools/leaderboard/presentation/LeaderboardController";
 import { hashFromViewId, isEmptyHashRoute, isKnownHashRoute, viewIdFromHash, type ViewId } from "./GitHubToolsRoutes";
+import { ThemeController, type ThemePreference } from "../../../core/theme/ThemeController";
 import WebComponent from "../../../core/webcomponents/WebComponent";
 import css from "./GitHubToolsApp.scss?raw";
 import html from "./GitHubToolsApp.html?raw";
 
 type NavigationDrawerElement = HTMLElement & { opened: boolean };
-type ThemePreference = "light" | "dark" | "system";
 type RepositoryToolId = "mapper" | "releases";
-
-const THEME_STORAGE_KEY = "github_tools_theme";
-const LEADERBOARD_PAGE_SIZE = 25;
-const LEADERBOARD_SEARCH_DEBOUNCE_MS = 200;
-const DEFAULT_LEADERBOARD_SLUG = "global";
-const DEFAULT_LEADERBOARD_NAME = strings.leaderboard.ranking.defaultCountry;
 
 const VIEW_TITLES: Record<ViewId, string> = {
 	home: strings.common.navigation.home,
@@ -66,30 +59,18 @@ type AppState = {
 		parsedRepo: RepositoryRef | null;
 	};
 	patch: PatchFile;
-	leaderboard: {
-		data: Leaderboard | null;
-		countrySlug: string;
-		countryName: string;
-		query: string;
-		page: number;
-	};
 };
 
 export default class GitHubToolsApp extends WebComponent {
 	private readonly favoritesView = new FavoritesView();
-	private readonly countryLocator = new BrowserCountryLocator();
 	private feedback!: ToolFeedbackView;
-	private leaderboardView!: LeaderboardView;
+	private leaderboard!: LeaderboardController;
 	private mapperView!: RepoMapperView;
 	private releasesView!: ReleaseStatsView;
 	private patchView!: GitPatchView;
 	private pendingActions = new Set<"mapper" | "releases" | "patch">();
-	private leaderboardSearchTimer = 0;
-	// Media query lists are new objects on every matchMedia() call, so the instance the
-	// listener was added to has to be the instance it is later removed from.
-	private readonly darkSchemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
+	private readonly theme = new ThemeController();
 	private readonly handleHashChange = (): void => this.activateViewFromHash();
-	private readonly handleSystemThemeChange = (): void => this.applyTheme(this.getThemePreference(), false);
 
 	private state: AppState = {
 		currentView: "home",
@@ -110,13 +91,6 @@ export default class GitHubToolsApp extends WebComponent {
 			content: "",
 			filename: "git.patch",
 		},
-		leaderboard: {
-			data: null,
-			countrySlug: DEFAULT_LEADERBOARD_SLUG,
-			countryName: DEFAULT_LEADERBOARD_NAME,
-			query: "",
-			page: 1,
-		},
 	};
 
 	constructor() {
@@ -130,33 +104,37 @@ export default class GitHubToolsApp extends WebComponent {
 	onConnected(): void {
 		const root = this.shadowRoot!;
 		this.feedback = new ToolFeedbackView(root);
-		this.leaderboardView = new LeaderboardView(root);
+		this.leaderboard = new LeaderboardController(root, {
+			getLeaderboard: DataServices.leaderboard,
+			searchUsers: DataServices.searchLeaderboard,
+			countryLocator: new BrowserCountryLocator(),
+		});
 		this.mapperView = new RepoMapperView(root);
 		this.releasesView = new ReleaseStatsView(root, (index) => this.selectRelease(index));
 		this.patchView = new GitPatchView(root);
 
 		this.loadFavorites();
-		this.applyTheme(this.getThemePreference(), false);
+		this.theme.subscribe((theme, preference) => this.renderTheme(theme, preference));
+		this.theme.start();
 		this.bindNavigation();
 		this.bindForms();
 		this.bindFavorites();
 		this.bindRepositoryMapFormatControls();
 		this.bindPatchActions();
-		this.bindLeaderboard();
+		this.leaderboard.bind();
 		this.bindThemeOptions();
 		this.configureAppShowcase();
 		this.bindSubmitButtonFallbacks();
 		this.renderFavorites();
 		this.renderHomeFavorites();
 		window.addEventListener("hashchange", this.handleHashChange);
-		this.darkSchemeQuery.addEventListener("change", this.handleSystemThemeChange);
 		this.restoreInitialView();
 	}
 
 	onDisconnected(): void {
-		window.clearTimeout(this.leaderboardSearchTimer);
+		this.leaderboard.dispose();
 		window.removeEventListener("hashchange", this.handleHashChange);
-		this.darkSchemeQuery.removeEventListener("change", this.handleSystemThemeChange);
+		this.theme.stop();
 	}
 
 	private configureAppShowcase(): void {
@@ -199,43 +177,19 @@ export default class GitHubToolsApp extends WebComponent {
 	private bindThemeOptions(): void {
 		this.selectAll<HTMLElement>("[data-theme-option]").forEach((button) => {
 			button.addEventListener("click", () => {
-				const theme = button.dataset.themeOption;
-				if (theme === "light" || theme === "dark" || theme === "system") this.applyTheme(theme);
+				const preference = button.dataset.themeOption;
+				if (preference === "light" || preference === "dark" || preference === "system") {
+					this.theme.apply(preference);
+				}
 			});
 		});
 	}
 
-	private getThemePreference(): ThemePreference {
-		try {
-			const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-			return storedTheme === "light" || storedTheme === "dark" || storedTheme === "system" ? storedTheme : "system";
-		} catch {
-			return "system";
-		}
-	}
-
-	private applyTheme(theme: ThemePreference, persist = true): void {
-		if (persist) {
-			try {
-				window.localStorage.setItem(THEME_STORAGE_KEY, theme);
-			} catch (error) {
-				console.error("Failed to persist the theme preference", error);
-			}
-		}
-
-		const effectiveTheme = theme === "system" ? (this.darkSchemeQuery.matches ? "dark" : "light") : theme;
-		this.dataset.theme = effectiveTheme;
-		this.style.colorScheme = effectiveTheme;
-		// The browser chrome reads the document, not this shadow tree, so mirror the
-		// resolved theme onto the page metadata as well.
-		document.documentElement.dataset.theme = effectiveTheme;
-		document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => {
-			const target = meta.dataset.theme;
-			if (!target) return;
-			meta.media = target === effectiveTheme ? "all" : "not all";
-		});
+	private renderTheme(theme: "light" | "dark", preference: ThemePreference): void {
+		this.dataset.theme = theme;
+		this.style.colorScheme = theme;
 		this.selectAll<HTMLElement>("[data-theme-option]").forEach((button) => {
-			const isActive = button.dataset.themeOption === theme;
+			const isActive = button.dataset.themeOption === preference;
 			button.toggleAttribute("data-active", isActive);
 			button.setAttribute("aria-pressed", String(isActive));
 		});
@@ -270,39 +224,6 @@ export default class GitHubToolsApp extends WebComponent {
 	private bindPatchActions(): void {
 		this.select("#patch-copy-btn")?.addEventListener("click", () => void this.copyPatchOutput());
 		this.select("#patch-download-btn")?.addEventListener("click", () => this.downloadPatch());
-	}
-
-	private bindLeaderboard(): void {
-		this.select<HTMLInputElement>("#leaderboard-search")?.addEventListener("input", (event) => {
-			const query = (event.currentTarget as HTMLInputElement).value;
-			// Rebuilding the ranking on every keystroke re-requests every avatar, so
-			// settle on the typed query first.
-			window.clearTimeout(this.leaderboardSearchTimer);
-			this.leaderboardSearchTimer = window.setTimeout(() => {
-				this.state.leaderboard.query = query;
-				this.state.leaderboard.page = 1;
-				this.renderLeaderboardUsers();
-			}, LEADERBOARD_SEARCH_DEBOUNCE_MS);
-		});
-		this.select("#leaderboard-previous")?.addEventListener("click", () => this.changeLeaderboardPage(-1));
-		this.select("#leaderboard-next")?.addEventListener("click", () => this.changeLeaderboardPage(1));
-		this.select("#leaderboard-country-filters")?.addEventListener("click", (event) => {
-			const chip = (event.target as HTMLElement).closest<HTMLElement>("md-filter-chip[data-country-slug]");
-			if (!chip) return;
-			const { countrySlug, countryName } = chip.dataset;
-			if (!countrySlug || !countryName) return;
-			// Filter chips toggle themselves on click. Re-assert the selection from state
-			// so activating the current country cannot clear the filter row.
-			if (countrySlug === this.state.leaderboard.countrySlug && this.state.leaderboard.data) {
-				this.leaderboardView.syncCountryChips(this.state.leaderboard.countrySlug);
-				return;
-			}
-			void this.loadLeaderboard(countrySlug, countryName);
-		});
-		this.select("#leaderboard-locate")?.addEventListener("click", () => void this.useCurrentLocation());
-		this.select("#leaderboard-retry")?.addEventListener("click", () => {
-			void this.loadLeaderboard(this.state.leaderboard.countrySlug, this.state.leaderboard.countryName);
-		});
 	}
 
 	private toggleDrawer(forceOpen?: boolean): void {
@@ -381,78 +302,8 @@ export default class GitHubToolsApp extends WebComponent {
 		const topbarTitle = this.select("#topbar-title");
 		if (topbarTitle) topbarTitle.textContent = VIEW_TITLES[viewId];
 		if (url) this.presetToolUrl(viewId, url);
-		if (viewId === "leaderboard" && !this.state.leaderboard.data) {
-			void this.loadLeaderboard(this.state.leaderboard.countrySlug, this.state.leaderboard.countryName);
-		}
+		if (viewId === "leaderboard") this.leaderboard.activate();
 		if (closeDrawer) this.toggleDrawer(false);
-	}
-
-	private async loadLeaderboard(countrySlug: string, countryName: string): Promise<boolean> {
-		this.leaderboardView.hideError();
-		this.leaderboardView.setLoading(true);
-		// Reflect the requested country immediately so the chips, heading, and rows can
-		// never describe three different countries at once.
-		this.leaderboardView.syncCountryChips(countrySlug);
-		this.leaderboardView.clearResults();
-		const previous = { slug: this.state.leaderboard.countrySlug, name: this.state.leaderboard.countryName };
-		this.state.leaderboard.countrySlug = countrySlug;
-		this.state.leaderboard.countryName = countryName;
-		this.state.leaderboard.page = 1;
-
-		try {
-			this.state.leaderboard.data = await DataServices.leaderboard.execute(countrySlug, countryName);
-			this.leaderboardView.renderHeader(this.state.leaderboard.data);
-			this.renderLeaderboardUsers();
-			return true;
-		} catch (error) {
-			// Keep the last ranking that actually loaded selected, so retry targets it.
-			this.state.leaderboard.countrySlug = this.state.leaderboard.data ? previous.slug : countrySlug;
-			this.state.leaderboard.countryName = this.state.leaderboard.data ? previous.name : countryName;
-			this.leaderboardView.syncCountryChips(this.state.leaderboard.countrySlug);
-			if (this.state.leaderboard.data) {
-				this.leaderboardView.renderHeader(this.state.leaderboard.data);
-				this.renderLeaderboardUsers();
-			}
-			this.leaderboardView.showError(this.errorMessage(error));
-			return false;
-		} finally {
-			this.leaderboardView.setLoading(false);
-		}
-	}
-
-	private changeLeaderboardPage(delta: number): void {
-		this.state.leaderboard.page = Math.max(1, this.state.leaderboard.page + delta);
-		this.renderLeaderboardUsers();
-	}
-
-	private renderLeaderboardUsers(): void {
-		const leaderboard = this.state.leaderboard.data;
-		if (!leaderboard) return;
-		const query = this.state.leaderboard.query;
-		const allUsers = DataServices.searchLeaderboard.execute(leaderboard, query, leaderboard.users.length);
-		const pageCount = Math.max(1, Math.ceil(allUsers.length / LEADERBOARD_PAGE_SIZE));
-		this.state.leaderboard.page = Math.min(this.state.leaderboard.page, pageCount);
-		const start = (this.state.leaderboard.page - 1) * LEADERBOARD_PAGE_SIZE;
-		this.leaderboardView.renderUsers(
-			allUsers.slice(start, start + LEADERBOARD_PAGE_SIZE),
-			leaderboard.country,
-			query.trim().length > 0,
-			allUsers.length,
-		);
-		this.leaderboardView.renderPagination(this.state.leaderboard.page, pageCount, allUsers.length);
-	}
-
-	private async useCurrentLocation(): Promise<void> {
-		this.leaderboardView.setLocating(true);
-		this.leaderboardView.hideError();
-		try {
-			const country = await this.countryLocator.locate();
-			await this.loadLeaderboard(country.slug, country.name);
-		} catch (error) {
-			this.leaderboardView.showError(this.errorMessage(error));
-		} finally {
-			this.leaderboardView.setLocating(false);
-		}
 	}
 
 	private loadFavorites(): void {

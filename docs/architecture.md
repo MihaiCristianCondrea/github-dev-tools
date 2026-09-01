@@ -8,8 +8,8 @@
 2. `src/app/main.ts` calls `startApp()` from `src/app/App.ts`.
 3. `src/app/App.ts` applies localized document metadata, renders the startup state, initializes Material Web and shared services, and mounts `<github-tools-app>` into `#app`.
 4. `src/core/material/MaterialElements.ts` is the only production file that imports Material Web element definitions. Importing that module registers the `md-*` custom elements through the Vite bundle.
-5. `src/features/github-tools/presentation/GitHubToolsApp.ts` owns top-level navigation, the drawer, shared layout, favorites wiring, leaderboard paging and filtering, and tool switching.
-6. Tool actions call shared GitHub services and tool-specific domain helpers, then render results back into the localized app-shell template.
+5. `src/features/github-tools/presentation/GitHubToolsApp.ts` owns top-level navigation, the drawer, shared layout, favorites wiring, and tool switching.
+6. Tool actions call shared GitHub services and tool-specific domain helpers, then hand the result to the tool's own view class, which writes into the localized app-shell template.
 
 Do not add another application entry point or duplicate startup orchestration under a feature package.
 
@@ -41,12 +41,15 @@ The hash is the source of truth for refresh restoration, direct deep links, and 
 Core code provides reusable app-wide foundations that are not specific to one feature:
 
 - `components/` contains app-wide visual components.
-- `events/` contains observable and event utilities.
 - `localization/` imports locale resources and provides template resolution, interpolation, plural, number, date, and ordinal formatting.
 - `material/` contains the bundled Material Web registration boundary.
-- `state/` contains global state, state wrappers, and base model helpers.
+- `theme/` owns the stored theme preference, the operating-system preference it falls back to, and the document metadata the browser chrome reads.
 - `typings/` contains project-level TypeScript declarations.
 - `webcomponents/` contains reusable native custom-element helpers.
+
+Core holds only code the application actually runs. Do not reintroduce a parallel
+state container, event bus, or component-registration loader alongside the existing
+startup path; a dormant second architecture is what makes the real one ambiguous.
 
 ### `src/features/github-tools`
 
@@ -55,13 +58,16 @@ The GitHub Tools feature group contains the app shell, shared GitHub logic, and 
 - `presentation/GitHubToolsApp.ts`, `.html`, and `.scss` define the shell and coordinator.
 - `core/models/` contains shared GitHub models such as repository and commit references.
 - `core/services/` contains GitHub parsing and API-client logic shared by multiple tools.
-- `core/components/` is reserved for shared GitHub Tools UI components.
-- `tools/repo-mapper/` contains repository-tree models and map formatting.
-- `tools/release-stats/` contains release statistics models.
-- `tools/git-patch/` contains patch models.
-- `tools/leaderboard/` contains remote ranking access, country location, ranking search, and presentation logic.
+- `core/components/` contains shared GitHub Tools UI helpers, including `ToolFeedbackView` for error banners, button loading states, and clipboard feedback.
+- `tools/repo-mapper/` contains repository-tree models, map formatting, and `RepoMapperView`.
+- `tools/release-stats/` contains release statistics models and `ReleaseStatsView`.
+- `tools/git-patch/` contains patch models and `GitPatchView`.
+- `tools/leaderboard/` contains remote ranking access, country location, ranking search, `LeaderboardView`, and `LeaderboardController`.
 
-The current shell intentionally coordinates several tools in one component. Future UI refactors may move tool rendering into smaller panels without duplicating GitHub clients, locale access, routing, or Material registration.
+The shell owns routing, the drawer, theming, favorites wiring, and form submission. It
+does not render tool output: each tool package owns a view class that writes into the
+shared template, and the leaderboard additionally owns a controller holding its own
+state. Add a new tool the same way rather than growing the shell.
 
 ### Other features
 
@@ -103,6 +109,7 @@ See [`localization.md`](localization.md) for the complete resource ownership, co
 - Resolvable HTML template tokens
 - Hardcoded visible HTML and accessibility copy
 - Common hardcoded TypeScript UI sinks
+- User-facing copy in data mappers, which translate payload shapes and must stay free of copy
 - The single locale-import boundary
 - Synchronization of HTML and manifest metadata with `common.app`
 
@@ -113,7 +120,7 @@ See [`localization.md`](localization.md) for the complete resource ownership, co
 - **Repo Mapper** accepts a GitHub repository URL, an optional token, and an output format, then renders an ASCII tree or flat path list.
 - **Release Stats** accepts a repository URL and renders total downloads, per-release totals, and asset-level counts.
 - **Git Patch** accepts a commit URL and returns patch text for copying or download.
-- **GitHub Leaderboard** starts with the global ranking, supports country chips, optional location lookup, top-bar username search, and paginated results.
+- **GitHub Leaderboard** starts with the global ranking, supports country chips, optional location lookup, username search, and paginated results. Rankings come from `committers.top`, which does not consistently send CORS headers: the client requests the source directly first and only falls back to the public passthroughs in `RemoteLeaderboardRepository`. Those fallbacks are third-party services that observe the visitor's request, so keep the direct request first and prefer replacing them with first-party infrastructure.
 - **Favorites** are shared by Repo Mapper and Release Stats, stored locally, and shown on Home and the Favorites view.
 
 ## Custom-element registration rules
