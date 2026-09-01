@@ -19,9 +19,10 @@ const isRanking = (value: unknown): value is CommittersRankingDto => {
 };
 
 const fetchRanking = async (url: string): Promise<CommittersRankingDto> => {
-	// committers.top does not consistently send CORS headers, so use a CORS-enabled
-	// passthrough first and retain the source URL as a fallback for compatible clients.
-	const urls = [...CORS_PROXY_URLS.map((proxy) => `${proxy}${encodeURIComponent(url)}`), url];
+	// Try committers.top directly first: it keeps ordinary requests on first-party
+	// infrastructure. The CORS passthroughs are third-party services that see the
+	// visitor's IP, so they are only a fallback for clients the source rejects.
+	const urls = [url, ...CORS_PROXY_URLS.map((proxy) => `${proxy}${encodeURIComponent(url)}`)];
 	let lastError: unknown;
 
 	for (const requestUrl of urls) {

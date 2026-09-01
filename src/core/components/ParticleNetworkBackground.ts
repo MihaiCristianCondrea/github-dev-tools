@@ -146,9 +146,10 @@ class ParticleNetworkBackground extends HTMLElement {
 		this.reducedMotion = this.reducedMotionQuery.matches;
 		this.coarsePointer = this.coarsePointerQuery.matches;
 
-		this.themeObserver = new MutationObserver(() => this.extractCssColors());
-		this.themeObserver.observe(document.documentElement, { attributes: true, attributeFilter: ["class", "data-theme", "style"] });
-		this.themeObserver.observe(this, { attributes: true, attributeFilter: ["class", "style"] });
+		this.themeObserver = new MutationObserver(() => this.handleThemeMutation());
+		for (const target of this.themeTargets()) {
+			this.themeObserver.observe(target, { attributes: true, attributeFilter: ["class", "data-theme", "style"] });
+		}
 
 		this.resizeObserver.observe(this);
 		this.reducedMotionQuery.addEventListener("change", this.handleReducedMotionChange);
@@ -175,6 +176,35 @@ class ParticleNetworkBackground extends HTMLElement {
 		window.removeEventListener("pointermove", this.handlePointerMove);
 		window.removeEventListener("pointerleave", this.handlePointerLeave);
 		window.removeEventListener("scroll", this.handleScroll);
+	}
+
+	// Theme tokens are inherited, so the element that carries the theme attribute may be
+	// the shadow host this background lives in rather than the document element. Observe
+	// every ancestor host up the tree so a theme switch anywhere above is picked up.
+	private themeTargets(): Element[] {
+		const targets: Element[] = [this, document.documentElement];
+		let node: Node = this;
+		while (true) {
+			const root = node.getRootNode();
+			if (!(root instanceof ShadowRoot)) break;
+			targets.push(root.host);
+			node = root.host;
+		}
+		return targets;
+	}
+
+	private handleThemeMutation(): void {
+		const previous = this.targetMuted;
+		this.extractCssColors();
+		const changed = previous.r !== this.targetMuted.r
+			|| previous.g !== this.targetMuted.g
+			|| previous.b !== this.targetMuted.b;
+		// A paused canvas (hidden tab, reduced motion) never runs the colour lerp, so
+		// repaint once here instead of leaving the previous theme's palette on screen.
+		if (changed && this.animationFrameId === null) {
+			this.currentMuted = { ...this.targetMuted };
+			this.draw();
+		}
 	}
 
 	private extractCssColors(instant = false): void {

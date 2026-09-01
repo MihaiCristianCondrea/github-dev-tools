@@ -20,7 +20,8 @@
     "accessTokenPlaceholder": "github_pat_...",
     "processing": "Processing...",
     "invalidGitHubUrl": "Invalid GitHub URL",
-    "somethingWentWrong": "Something went wrong"
+    "somethingWentWrong": "Something went wrong",
+    "copyFailed": "Could not copy to the clipboard. Select the text and copy it manually."
   },
   "mapper": {
     "ariaLabel": "Repo Mapper",
@@ -48,7 +49,8 @@
     "unpublished": "Unpublished",
     "found_one": "{count} Found",
     "found_other": "{count} Found",
-    "noAssets": "No assets."
+    "noAssets": "No assets.",
+    "truncated": "This project has more releases than can be loaded at once. Totals cover the {count} most recent releases."
   },
   "patch": {
     "ariaLabel": "Git Patch",

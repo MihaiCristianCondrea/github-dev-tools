@@ -6,5 +6,7 @@
   "seeAll": "See all",
   "removeRepository": "Remove {repository} from favorites",
   "map": "Map",
-  "stats": "Stats"
+  "stats": "Stats",
+  "saveFailed": "Favorites could not be saved. Check that this site is allowed to store data in your browser.",
+  "errorLabel": "Favorites error"
 }

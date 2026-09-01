@@ -2,7 +2,7 @@ import assert from "node:assert/strict";
 import test from "node:test";
 import { RemoteLeaderboardRepository } from "../src/features/github-tools/tools/leaderboard/data/RemoteLeaderboardRepository.ts";
 
-test("falls back when a leaderboard proxy returns an HTML error page", async () => {
+test("requests the source directly first and falls back when it returns an HTML error page", async () => {
 	const originalFetch = globalThis.fetch;
 	const requestedUrls: string[] = [];
 	globalThis.fetch = async (input) => {
@@ -19,6 +19,8 @@ test("falls back when a leaderboard proxy returns an HTML error page", async () 
 	try {
 		const leaderboard = await new RemoteLeaderboardRepository().getCountryLeaderboard("global", "Global");
 		assert.equal(requestedUrls.length, 2);
+		assert.equal(requestedUrls[0], "https://committers.top/rank_only/global.json");
+		assert.ok(requestedUrls[1].startsWith("https://api.allorigins.win/"), "the proxy is only used as a fallback");
 		assert.deepEqual(leaderboard.users, [
 			{ username: "octocat", rank: 1 },
 			{ username: "hubot", rank: 2 },

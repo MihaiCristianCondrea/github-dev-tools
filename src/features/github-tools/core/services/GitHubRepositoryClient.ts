@@ -28,19 +28,28 @@ type GithubReleaseResponse = {
 type CacheEntry<T> = { expiresAt: number; value: T };
 
 const GITHUB_READ_CACHE_TTL_MS = 2 * 60 * 1000;
+const RELEASES_PER_PAGE = 100;
+// GitHub caps release listings at 100 per page. Walk a bounded number of pages so
+// download totals stay accurate for large projects without unbounded request fan-out.
+const MAX_RELEASE_PAGES = 10;
+
+// Owner, repository, and ref values are user input. Encode every segment before it
+// reaches a request URL so a stray "?" or "/" cannot reshape the API path.
+const segment = (value: string): string => encodeURIComponent(value);
 
 export default class GitHubRepositoryClient {
 	private readonly responseCache = new Map<string, CacheEntry<unknown> | Promise<unknown>>();
 
 	async getRepositoryTree(repository: RepositoryRef, token = ""): Promise<RepositoryTree> {
 		const headers = this.githubHeaders(token);
+		const repositoryPath = `${segment(repository.owner)}/${segment(repository.repo)}`;
 		const repoData = await this.fetchJson<GithubRepoResponse>(
-			`https://api.github.com/repos/${repository.owner}/${repository.repo}`,
+			`https://api.github.com/repos/${repositoryPath}`,
 			headers,
 			strings.githubTools.errors.repositoryNotFound
 		);
 		const treeData = await this.fetchJson<GithubTreeResponse>(
-			`https://api.github.com/repos/${repository.owner}/${repository.repo}/git/trees/${encodeURIComponent(repoData.default_branch)}?recursive=1`,
+			`https://api.github.com/repos/${repositoryPath}/git/trees/${segment(repoData.default_branch)}?recursive=1`,
 			headers,
 			strings.githubTools.errors.treeFetchFailed
 		);
@@ -48,11 +57,22 @@ export default class GitHubRepositoryClient {
 	}
 
 	async getReleaseStats(repository: RepositoryRef, token = ""): Promise<ReleaseStats> {
-		const releases = await this.fetchJson<GithubReleaseResponse[]>(
-			`https://api.github.com/repos/${repository.owner}/${repository.repo}/releases?per_page=100`,
-			this.githubHeaders(token),
-			strings.githubTools.errors.repositoryNotFound
-		);
+		const headers = this.githubHeaders(token);
+		const repositoryPath = `${segment(repository.owner)}/${segment(repository.repo)}`;
+		const releases: GithubReleaseResponse[] = [];
+		let truncated = false;
+
+		for (let page = 1; page <= MAX_RELEASE_PAGES; page++) {
+			const pageReleases = await this.fetchJson<GithubReleaseResponse[]>(
+				`https://api.github.com/repos/${repositoryPath}/releases?per_page=${RELEASES_PER_PAGE}&page=${page}`,
+				headers,
+				strings.githubTools.errors.repositoryNotFound
+			);
+			releases.push(...pageReleases);
+			if (pageReleases.length < RELEASES_PER_PAGE) break;
+			truncated = page === MAX_RELEASE_PAGES;
+		}
+
 		if (releases.length === 0) throw new Error(strings.githubTools.errors.noReleases);
 
 		let total = 0;
@@ -70,11 +90,12 @@ export default class GitHubRepositoryClient {
 			};
 		});
 
-		return { total, releases: processed };
+		return { total, releases: processed, truncated };
 	}
 
 	async getCommitPatch(commit: CommitRef): Promise<PatchFile> {
-		const response = await fetch(`https://api.github.com/repos/${commit.owner}/${commit.repo}/commits/${commit.sha}`, {
+		const commitUrl = `https://api.github.com/repos/${segment(commit.owner)}/${segment(commit.repo)}/commits/${segment(commit.sha)}`;
+		const response = await fetch(commitUrl, {
 			headers: { Accept: "application/vnd.github.v3.patch" },
 		});
 		if (!response.ok) throw new Error(strings.githubTools.errors.patchFetchFailed);

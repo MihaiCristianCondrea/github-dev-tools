@@ -1,7 +1,6 @@
 import DataServices from "../../../app/DataServices";
 import {
-	formatDate,
-	formatEnglishPlural,
+	formatMessage,
 	formatNumber,
 	localizeTemplate,
 	strings,
@@ -13,9 +12,13 @@ import type { RepositoryRef } from "../core/models/Repository";
 import type { FavoriteRepository } from "../../favorites/domain/models/FavoriteRepository";
 import { FavoritesView } from "../../favorites/presentation/FavoritesView";
 import { repositoryUrl } from "../core/models/Repository";
+import { ToolFeedbackView } from "../core/components/ToolFeedbackView";
 import type { PatchFile } from "../tools/git-patch/domain/PatchFile";
-import type { ProcessedRelease, ReleaseAsset, ReleaseStats } from "../tools/release-stats/domain/ReleaseStats";
+import { GitPatchView } from "../tools/git-patch/presentation/GitPatchView";
+import type { ReleaseStats } from "../tools/release-stats/domain/ReleaseStats";
+import { ReleaseStatsView } from "../tools/release-stats/presentation/ReleaseStatsView";
 import type { RepositoryMapFormat, RepositoryMapResult, RepositoryTreeItem } from "../tools/repo-mapper/domain/RepositoryTree";
+import { RepoMapperView } from "../tools/repo-mapper/presentation/RepoMapperView";
 import GitHubUrlParser from "../core/services/GitHubUrlParser";
 import RepositoryMapBuilder from "../tools/repo-mapper/domain/RepositoryMapBuilder";
 import { BrowserCountryLocator } from "../tools/leaderboard/data/BrowserCountryLocator";
@@ -27,11 +30,12 @@ import css from "./GitHubToolsApp.scss?raw";
 import html from "./GitHubToolsApp.html?raw";
 
 type NavigationDrawerElement = HTMLElement & { opened: boolean };
-type SegmentedButtonSetElement = HTMLElement & { setButtonSelected(index: number, selected: boolean): void };
 type ThemePreference = "light" | "dark" | "system";
+type RepositoryToolId = "mapper" | "releases";
 
 const THEME_STORAGE_KEY = "github_tools_theme";
 const LEADERBOARD_PAGE_SIZE = 25;
+const LEADERBOARD_SEARCH_DEBOUNCE_MS = 200;
 const DEFAULT_LEADERBOARD_SLUG = "global";
 const DEFAULT_LEADERBOARD_NAME = strings.leaderboard.ranking.defaultCountry;
 
@@ -44,9 +48,12 @@ const VIEW_TITLES: Record<ViewId, string> = {
 	leaderboard: strings.common.navigation.leaderboard,
 };
 
+// Every piece of view state the app renders from lives here. The DOM reflects this
+// object; it is never read back as the source of truth.
 type AppState = {
 	currentView: ViewId;
 	favorites: FavoriteRepository[];
+	tokenPanels: Record<RepositoryToolId, boolean>;
 	mapper: {
 		format: RepositoryMapFormat;
 		rawPaths: RepositoryTreeItem[];
@@ -59,21 +66,35 @@ type AppState = {
 		parsedRepo: RepositoryRef | null;
 	};
 	patch: PatchFile;
-	leaderboard: Leaderboard | null;
+	leaderboard: {
+		data: Leaderboard | null;
+		countrySlug: string;
+		countryName: string;
+		query: string;
+		page: number;
+	};
 };
 
 export default class GitHubToolsApp extends WebComponent {
 	private readonly favoritesView = new FavoritesView();
 	private readonly countryLocator = new BrowserCountryLocator();
+	private feedback!: ToolFeedbackView;
 	private leaderboardView!: LeaderboardView;
-	private leaderboardPage = 1;
+	private mapperView!: RepoMapperView;
+	private releasesView!: ReleaseStatsView;
+	private patchView!: GitPatchView;
 	private pendingActions = new Set<"mapper" | "releases" | "patch">();
+	private leaderboardSearchTimer = 0;
+	// Media query lists are new objects on every matchMedia() call, so the instance the
+	// listener was added to has to be the instance it is later removed from.
+	private readonly darkSchemeQuery = window.matchMedia("(prefers-color-scheme: dark)");
 	private readonly handleHashChange = (): void => this.activateViewFromHash();
 	private readonly handleSystemThemeChange = (): void => this.applyTheme(this.getThemePreference(), false);
 
 	private state: AppState = {
 		currentView: "home",
 		favorites: [],
+		tokenPanels: { mapper: false, releases: false },
 		mapper: {
 			format: "ascii",
 			rawPaths: [],
@@ -89,7 +110,13 @@ export default class GitHubToolsApp extends WebComponent {
 			content: "",
 			filename: "git.patch",
 		},
-		leaderboard: null,
+		leaderboard: {
+			data: null,
+			countrySlug: DEFAULT_LEADERBOARD_SLUG,
+			countryName: DEFAULT_LEADERBOARD_NAME,
+			query: "",
+			page: 1,
+		},
 	};
 
 	constructor() {
@@ -101,7 +128,13 @@ export default class GitHubToolsApp extends WebComponent {
 	}
 
 	onConnected(): void {
-		this.leaderboardView = new LeaderboardView(this.shadowRoot!);
+		const root = this.shadowRoot!;
+		this.feedback = new ToolFeedbackView(root);
+		this.leaderboardView = new LeaderboardView(root);
+		this.mapperView = new RepoMapperView(root);
+		this.releasesView = new ReleaseStatsView(root, (index) => this.selectRelease(index));
+		this.patchView = new GitPatchView(root);
+
 		this.loadFavorites();
 		this.applyTheme(this.getThemePreference(), false);
 		this.bindNavigation();
@@ -116,8 +149,14 @@ export default class GitHubToolsApp extends WebComponent {
 		this.renderFavorites();
 		this.renderHomeFavorites();
 		window.addEventListener("hashchange", this.handleHashChange);
-		window.matchMedia("(prefers-color-scheme: dark)").addEventListener("change", this.handleSystemThemeChange);
+		this.darkSchemeQuery.addEventListener("change", this.handleSystemThemeChange);
 		this.restoreInitialView();
+	}
+
+	onDisconnected(): void {
+		window.clearTimeout(this.leaderboardSearchTimer);
+		window.removeEventListener("hashchange", this.handleHashChange);
+		this.darkSchemeQuery.removeEventListener("change", this.handleSystemThemeChange);
 	}
 
 	private configureAppShowcase(): void {
@@ -147,10 +186,7 @@ export default class GitHubToolsApp extends WebComponent {
 			this.syncDrawerState((event as CustomEvent<{ opened: boolean }>).detail.opened)
 		);
 		this.selectAll<HTMLElement>(".nav-item[data-view], .tool-card[data-view]").forEach((button) => {
-			const activate = () => {
-				const view = button.dataset.view as ViewId;
-				this.navigateTo(view);
-			};
+			const activate = () => this.navigateTo(button.dataset.view as ViewId);
 			button.addEventListener("click", activate);
 			button.addEventListener("keydown", (event) => {
 				if (event.key !== "Enter" && event.key !== " ") return;
@@ -170,16 +206,34 @@ export default class GitHubToolsApp extends WebComponent {
 	}
 
 	private getThemePreference(): ThemePreference {
-		const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
-		return storedTheme === "light" || storedTheme === "dark" || storedTheme === "system" ? storedTheme : "system";
+		try {
+			const storedTheme = window.localStorage.getItem(THEME_STORAGE_KEY);
+			return storedTheme === "light" || storedTheme === "dark" || storedTheme === "system" ? storedTheme : "system";
+		} catch {
+			return "system";
+		}
 	}
 
 	private applyTheme(theme: ThemePreference, persist = true): void {
-		if (persist) window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+		if (persist) {
+			try {
+				window.localStorage.setItem(THEME_STORAGE_KEY, theme);
+			} catch (error) {
+				console.error("Failed to persist the theme preference", error);
+			}
+		}
 
-		const effectiveTheme = theme === "system" ? (window.matchMedia("(prefers-color-scheme: dark)").matches ? "dark" : "light") : theme;
+		const effectiveTheme = theme === "system" ? (this.darkSchemeQuery.matches ? "dark" : "light") : theme;
 		this.dataset.theme = effectiveTheme;
 		this.style.colorScheme = effectiveTheme;
+		// The browser chrome reads the document, not this shadow tree, so mirror the
+		// resolved theme onto the page metadata as well.
+		document.documentElement.dataset.theme = effectiveTheme;
+		document.querySelectorAll<HTMLMetaElement>('meta[name="theme-color"]').forEach((meta) => {
+			const target = meta.dataset.theme;
+			if (!target) return;
+			meta.media = target === effectiveTheme ? "all" : "not all";
+		});
 		this.selectAll<HTMLElement>("[data-theme-option]").forEach((button) => {
 			const isActive = button.dataset.themeOption === theme;
 			button.toggleAttribute("data-active", isActive);
@@ -188,13 +242,13 @@ export default class GitHubToolsApp extends WebComponent {
 	}
 
 	private bindForms(): void {
-		this.select<HTMLFormElement>("#mapper-form")?.addEventListener("submit", (event) => this.handleMapperSubmit(event));
-		this.select<HTMLFormElement>("#releases-form")?.addEventListener("submit", (event) => this.handleReleasesSubmit(event));
-		this.select<HTMLFormElement>("#patch-form")?.addEventListener("submit", (event) => this.handlePatchSubmit(event));
+		this.select<HTMLFormElement>("#mapper-form")?.addEventListener("submit", (event) => void this.handleMapperSubmit(event));
+		this.select<HTMLFormElement>("#releases-form")?.addEventListener("submit", (event) => void this.handleReleasesSubmit(event));
+		this.select<HTMLFormElement>("#patch-form")?.addEventListener("submit", (event) => void this.handlePatchSubmit(event));
 		this.select<HTMLInputElement>("#mapper-url")?.addEventListener("input", () => this.handleUrlInput("mapper"));
 		this.select<HTMLInputElement>("#releases-url")?.addEventListener("input", () => this.handleUrlInput("releases"));
 		this.selectAll<HTMLButtonElement>("[data-token-toggle]").forEach((button) => {
-			button.addEventListener("click", () => this.toggleToken(button.dataset.tokenToggle as "mapper" | "releases"));
+			button.addEventListener("click", () => this.toggleToken(button.dataset.tokenToggle as RepositoryToolId));
 		});
 	}
 
@@ -210,40 +264,44 @@ export default class GitHubToolsApp extends WebComponent {
 			if (!selected || (format !== "ascii" && format !== "paths")) return;
 			this.setRepositoryMapFormat(format, false);
 		});
-		this.select("#mapper-copy-btn")?.addEventListener("click", () => this.copyMapperOutput());
+		this.select("#mapper-copy-btn")?.addEventListener("click", () => void this.copyMapperOutput());
 	}
 
 	private bindPatchActions(): void {
-		this.select("#patch-copy-btn")?.addEventListener("click", () => this.copyPatchOutput());
+		this.select("#patch-copy-btn")?.addEventListener("click", () => void this.copyPatchOutput());
 		this.select("#patch-download-btn")?.addEventListener("click", () => this.downloadPatch());
 	}
 
 	private bindLeaderboard(): void {
-		this.select<HTMLInputElement>("#leaderboard-search")?.addEventListener("input", () => {
-			this.leaderboardPage = 1;
-			this.renderLeaderboardUsers();
+		this.select<HTMLInputElement>("#leaderboard-search")?.addEventListener("input", (event) => {
+			const query = (event.currentTarget as HTMLInputElement).value;
+			// Rebuilding the ranking on every keystroke re-requests every avatar, so
+			// settle on the typed query first.
+			window.clearTimeout(this.leaderboardSearchTimer);
+			this.leaderboardSearchTimer = window.setTimeout(() => {
+				this.state.leaderboard.query = query;
+				this.state.leaderboard.page = 1;
+				this.renderLeaderboardUsers();
+			}, LEADERBOARD_SEARCH_DEBOUNCE_MS);
 		});
-		this.select("#leaderboard-previous")?.addEventListener("click", () => {
-			this.leaderboardPage = Math.max(1, this.leaderboardPage - 1);
-			this.renderLeaderboardUsers();
-		});
-		this.select("#leaderboard-next")?.addEventListener("click", () => {
-			this.leaderboardPage += 1;
-			this.renderLeaderboardUsers();
-		});
+		this.select("#leaderboard-previous")?.addEventListener("click", () => this.changeLeaderboardPage(-1));
+		this.select("#leaderboard-next")?.addEventListener("click", () => this.changeLeaderboardPage(1));
 		this.select("#leaderboard-country-filters")?.addEventListener("click", (event) => {
 			const chip = (event.target as HTMLElement).closest<HTMLElement>("md-filter-chip[data-country-slug]");
 			if (!chip) return;
 			const { countrySlug, countryName } = chip.dataset;
-			if (!countrySlug || !countryName || countrySlug === this.state.leaderboard?.countrySlug) return;
+			if (!countrySlug || !countryName) return;
+			// Filter chips toggle themselves on click. Re-assert the selection from state
+			// so activating the current country cannot clear the filter row.
+			if (countrySlug === this.state.leaderboard.countrySlug && this.state.leaderboard.data) {
+				this.leaderboardView.syncCountryChips(this.state.leaderboard.countrySlug);
+				return;
+			}
 			void this.loadLeaderboard(countrySlug, countryName);
 		});
 		this.select("#leaderboard-locate")?.addEventListener("click", () => void this.useCurrentLocation());
 		this.select("#leaderboard-retry")?.addEventListener("click", () => {
-			void this.loadLeaderboard(
-				this.state.leaderboard?.countrySlug ?? DEFAULT_LEADERBOARD_SLUG,
-				this.state.leaderboard?.country ?? DEFAULT_LEADERBOARD_NAME,
-			);
+			void this.loadLeaderboard(this.state.leaderboard.countrySlug, this.state.leaderboard.countryName);
 		});
 	}
 
@@ -268,13 +326,13 @@ export default class GitHubToolsApp extends WebComponent {
 		if (triggerIcon) triggerIcon.textContent = isOpen ? "menu_open" : "menu";
 	}
 
-	disconnectedCallback(): void {
-		window.removeEventListener("hashchange", this.handleHashChange);
-		window.matchMedia("(prefers-color-scheme: dark)").removeEventListener("change", this.handleSystemThemeChange);
-	}
-
 	private restoreInitialView(): void {
 		if (isEmptyHashRoute(window.location.hash) || !isKnownHashRoute(window.location.hash)) {
+			// An unknown route is replaced so a reload or a shared link resolves the same
+			// way it did here. A first visit keeps its clean URL until the user navigates.
+			if (!isEmptyHashRoute(window.location.hash)) {
+				window.history.replaceState(null, "", hashFromViewId("home"));
+			}
 			this.activateView("home", undefined, false);
 			return;
 		}
@@ -286,15 +344,24 @@ export default class GitHubToolsApp extends WebComponent {
 		this.activateView(viewIdFromHash(window.location.hash), undefined, closeDrawer);
 	}
 
-	private navigateTo(viewId: ViewId, url?: string, closeDrawer = true): void {
+	// The hash is the single source of truth for the active view: writing it lets the
+	// hashchange handler perform the activation exactly once.
+	private navigateTo(viewId: ViewId, url?: string): void {
+		if (url) this.presetToolUrl(viewId, url);
 		const nextHash = hashFromViewId(viewId);
 		if (window.location.hash === nextHash) {
-			this.activateView(viewId, url, closeDrawer);
+			this.activateView(viewId, url);
 			return;
 		}
-
 		window.location.hash = nextHash;
-		if (url || closeDrawer) this.activateView(viewId, url, closeDrawer);
+	}
+
+	private presetToolUrl(viewId: ViewId, url: string): void {
+		if (viewId !== "mapper" && viewId !== "releases") return;
+		const input = this.select<HTMLInputElement>(`#${viewId}-url`);
+		if (!input) return;
+		input.value = url;
+		this.handleUrlInput(viewId);
 	}
 
 	private activateView(viewId: ViewId, url?: string, closeDrawer = true): void {
@@ -313,16 +380,9 @@ export default class GitHubToolsApp extends WebComponent {
 		activeNav?.querySelector("md-icon, .material-symbols-outlined")?.classList.add("filled-icon");
 		const topbarTitle = this.select("#topbar-title");
 		if (topbarTitle) topbarTitle.textContent = VIEW_TITLES[viewId];
-		if (url && viewId === "mapper") {
-			this.select<HTMLInputElement>("#mapper-url")!.value = url;
-			this.handleUrlInput("mapper");
-		}
-		if (url && viewId === "releases") {
-			this.select<HTMLInputElement>("#releases-url")!.value = url;
-			this.handleUrlInput("releases");
-		}
-		if (viewId === "leaderboard" && !this.state.leaderboard) {
-			void this.loadLeaderboard(DEFAULT_LEADERBOARD_SLUG, DEFAULT_LEADERBOARD_NAME);
+		if (url) this.presetToolUrl(viewId, url);
+		if (viewId === "leaderboard" && !this.state.leaderboard.data) {
+			void this.loadLeaderboard(this.state.leaderboard.countrySlug, this.state.leaderboard.countryName);
 		}
 		if (closeDrawer) this.toggleDrawer(false);
 	}
@@ -330,16 +390,29 @@ export default class GitHubToolsApp extends WebComponent {
 	private async loadLeaderboard(countrySlug: string, countryName: string): Promise<boolean> {
 		this.leaderboardView.hideError();
 		this.leaderboardView.setLoading(true);
+		// Reflect the requested country immediately so the chips, heading, and rows can
+		// never describe three different countries at once.
+		this.leaderboardView.syncCountryChips(countrySlug);
+		this.leaderboardView.clearResults();
+		const previous = { slug: this.state.leaderboard.countrySlug, name: this.state.leaderboard.countryName };
+		this.state.leaderboard.countrySlug = countrySlug;
+		this.state.leaderboard.countryName = countryName;
+		this.state.leaderboard.page = 1;
+
 		try {
-			this.leaderboardPage = 1;
-			this.state.leaderboard = await DataServices.leaderboard.execute(countrySlug, countryName);
-			this.leaderboardView.renderHeader(this.state.leaderboard);
-			this.selectAll<HTMLElement>("#leaderboard-country-filters md-filter-chip").forEach((chip) => {
-				chip.toggleAttribute("selected", chip.dataset.countrySlug === countrySlug);
-			});
+			this.state.leaderboard.data = await DataServices.leaderboard.execute(countrySlug, countryName);
+			this.leaderboardView.renderHeader(this.state.leaderboard.data);
 			this.renderLeaderboardUsers();
 			return true;
 		} catch (error) {
+			// Keep the last ranking that actually loaded selected, so retry targets it.
+			this.state.leaderboard.countrySlug = this.state.leaderboard.data ? previous.slug : countrySlug;
+			this.state.leaderboard.countryName = this.state.leaderboard.data ? previous.name : countryName;
+			this.leaderboardView.syncCountryChips(this.state.leaderboard.countrySlug);
+			if (this.state.leaderboard.data) {
+				this.leaderboardView.renderHeader(this.state.leaderboard.data);
+				this.renderLeaderboardUsers();
+			}
 			this.leaderboardView.showError(this.errorMessage(error));
 			return false;
 		} finally {
@@ -347,31 +420,38 @@ export default class GitHubToolsApp extends WebComponent {
 		}
 	}
 
+	private changeLeaderboardPage(delta: number): void {
+		this.state.leaderboard.page = Math.max(1, this.state.leaderboard.page + delta);
+		this.renderLeaderboardUsers();
+	}
+
 	private renderLeaderboardUsers(): void {
-		if (!this.state.leaderboard) return;
-		const query = this.select<HTMLInputElement>("#leaderboard-search")?.value ?? "";
-		const allUsers = DataServices.searchLeaderboard.execute(this.state.leaderboard, query, this.state.leaderboard.users.length);
+		const leaderboard = this.state.leaderboard.data;
+		if (!leaderboard) return;
+		const query = this.state.leaderboard.query;
+		const allUsers = DataServices.searchLeaderboard.execute(leaderboard, query, leaderboard.users.length);
 		const pageCount = Math.max(1, Math.ceil(allUsers.length / LEADERBOARD_PAGE_SIZE));
-		this.leaderboardPage = Math.min(this.leaderboardPage, pageCount);
-		const start = (this.leaderboardPage - 1) * LEADERBOARD_PAGE_SIZE;
+		this.state.leaderboard.page = Math.min(this.state.leaderboard.page, pageCount);
+		const start = (this.state.leaderboard.page - 1) * LEADERBOARD_PAGE_SIZE;
 		this.leaderboardView.renderUsers(
 			allUsers.slice(start, start + LEADERBOARD_PAGE_SIZE),
-			this.state.leaderboard.country,
+			leaderboard.country,
 			query.trim().length > 0,
+			allUsers.length,
 		);
-		this.leaderboardView.renderPagination(this.leaderboardPage, pageCount, allUsers.length);
+		this.leaderboardView.renderPagination(this.state.leaderboard.page, pageCount, allUsers.length);
 	}
 
 	private async useCurrentLocation(): Promise<void> {
-		const button = this.select<HTMLElement>("#leaderboard-locate");
-		button?.toggleAttribute("disabled", true);
+		this.leaderboardView.setLocating(true);
+		this.leaderboardView.hideError();
 		try {
 			const country = await this.countryLocator.locate();
 			await this.loadLeaderboard(country.slug, country.name);
-		} catch {
-			// Location is optional; keep the currently selected leaderboard when unavailable.
+		} catch (error) {
+			this.leaderboardView.showError(this.errorMessage(error));
 		} finally {
-			button?.removeAttribute("disabled");
+			this.leaderboardView.setLocating(false);
 		}
 	}
 
@@ -380,18 +460,28 @@ export default class GitHubToolsApp extends WebComponent {
 	}
 
 	private saveFavorites(): void {
-		DataServices.favorites.save(this.state.favorites);
+		const saved = DataServices.favorites.save(this.state.favorites);
 		this.renderFavorites();
 		this.renderHomeFavorites();
 		if (this.state.currentView === "mapper") this.handleUrlInput("mapper");
 		if (this.state.currentView === "releases") this.handleUrlInput("releases");
+		if (saved) {
+			this.feedback.hideError("favorites");
+			return;
+		}
+		// Favorites are toggled from three different screens; report the failure on the
+		// one the user is looking at.
+		const scope = this.state.currentView === "mapper" || this.state.currentView === "releases"
+			? this.state.currentView
+			: "favorites";
+		this.feedback.showError(scope, strings.favorites.saveFailed);
 	}
 
 	private isFavorite(repository: RepositoryRef): boolean {
 		return DataServices.favorites.isFavorite(this.state.favorites, repository);
 	}
 
-	private toggleFavoriteCurrent(view: "mapper" | "releases"): void {
+	private toggleFavoriteCurrent(view: RepositoryToolId): void {
 		const parsed = view === "mapper" ? this.state.mapper.parsedRepo : this.state.releases.parsedRepo;
 		if (!parsed) return;
 
@@ -428,7 +518,7 @@ export default class GitHubToolsApp extends WebComponent {
 		);
 	}
 
-	private handleUrlInput(view: "mapper" | "releases"): void {
+	private handleUrlInput(view: RepositoryToolId): void {
 		const input = this.select<HTMLInputElement>(`#${view}-url`);
 		if (!input) return;
 		const parsed = GitHubUrlParser.parseRepositoryUrl(input.value);
@@ -439,7 +529,7 @@ export default class GitHubToolsApp extends WebComponent {
 		this.updateFavoriteButton(view, parsed);
 	}
 
-	private updateFavoriteButton(view: "mapper" | "releases", parsed: RepositoryRef | null): void {
+	private updateFavoriteButton(view: RepositoryToolId, parsed: RepositoryRef | null): void {
 		const button = this.select<HTMLElement>(`#${view}-fav-btn`);
 		if (!button) return;
 
@@ -451,31 +541,29 @@ export default class GitHubToolsApp extends WebComponent {
 			: strings.githubTools.shared.addFavorite);
 	}
 
-	private toggleToken(view: "mapper" | "releases"): void {
+	private toggleToken(view: RepositoryToolId): void {
 		const button = this.select<HTMLElement>(`[data-token-toggle="${view}"]`);
 		const panel = this.select<HTMLElement>(`#${view}-token-panel`);
 		const label = this.select<HTMLElement>(`#${view}-token-label`);
 
 		if (!button || !panel || !label) return;
 
-		const shouldShow = !panel.classList.contains("open");
-		const nextText = shouldShow
-			? strings.githubTools.shared.hideSettings
-			: strings.githubTools.shared.tokenSettings;
+		const shouldShow = !this.state.tokenPanels[view];
+		this.state.tokenPanels[view] = shouldShow;
 
 		panel.classList.toggle("open", shouldShow);
 		panel.setAttribute("aria-hidden", String(!shouldShow));
 
 		button.setAttribute("aria-expanded", String(shouldShow));
 		button.classList.toggle("is-expanded", shouldShow);
-		label.textContent = nextText;
+		label.textContent = shouldShow
+			? strings.githubTools.shared.hideSettings
+			: strings.githubTools.shared.tokenSettings;
 	}
 
 	private setRepositoryMapFormat(format: RepositoryMapFormat, syncControl = true): void {
 		this.state.mapper.format = format;
-		if (syncControl) {
-			this.select<SegmentedButtonSetElement>(".segmented")?.setButtonSelected(format === "ascii" ? 0 : 1, true);
-		}
+		if (syncControl) this.mapperView.setFormatControl(format);
 		if (this.state.mapper.rawPaths.length > 0) this.renderMapperOutput();
 	}
 
@@ -484,15 +572,14 @@ export default class GitHubToolsApp extends WebComponent {
 		if (!this.startPendingAction("mapper")) return;
 		const url = this.select<HTMLInputElement>("#mapper-url")?.value ?? "";
 		const token = this.select<HTMLInputElement>("#mapper-token")?.value ?? "";
-		const result = this.select("#mapper-result");
 		const parsed = GitHubUrlParser.parseRepositoryUrl(url);
 
-		this.hideError("mapper");
-		result?.classList.add("hidden");
-		const resetButton = this.setLoading("#mapper-submit", strings.githubTools.shared.processing, "progress_activity");
+		this.feedback.hideError("mapper");
+		this.mapperView.setResultVisible(false);
+		const resetButton = this.feedback.setLoading("#mapper-submit", strings.githubTools.shared.processing);
 
 		if (!parsed) {
-			this.showError("mapper", strings.githubTools.shared.invalidGitHubUrl);
+			this.feedback.showError("mapper", strings.githubTools.shared.invalidGitHubUrl);
 			resetButton();
 			this.finishPendingAction("mapper");
 			return;
@@ -503,10 +590,10 @@ export default class GitHubToolsApp extends WebComponent {
 			this.state.mapper.rawPaths = tree.items;
 			this.state.mapper.outputs = {};
 			this.renderMapperOutput();
-			result?.classList.remove("hidden");
-			if (tree.truncated) this.showError("mapper", strings.githubTools.mapper.truncated);
+			this.mapperView.setResultVisible(true);
+			if (tree.truncated) this.feedback.showError("mapper", strings.githubTools.mapper.truncated);
 		} catch (error) {
-			this.showError("mapper", this.errorMessage(error));
+			this.feedback.showError("mapper", this.errorMessage(error));
 		} finally {
 			resetButton();
 			this.finishPendingAction("mapper");
@@ -517,10 +604,7 @@ export default class GitHubToolsApp extends WebComponent {
 		const { format, outputs, rawPaths } = this.state.mapper;
 		const result = outputs[format] ?? RepositoryMapBuilder.build(rawPaths, format);
 		outputs[format] = result;
-
-		this.select("#mapper-code")!.textContent = result.output;
-		this.select("#mapper-stats-files")!.textContent = formatNumber(result.files);
-		this.select("#mapper-stats-folders")!.textContent = formatNumber(result.folders);
+		this.mapperView.renderOutput(result);
 	}
 
 	private async handleReleasesSubmit(event: SubmitEvent): Promise<void> {
@@ -528,131 +612,58 @@ export default class GitHubToolsApp extends WebComponent {
 		if (!this.startPendingAction("releases")) return;
 		const url = this.select<HTMLInputElement>("#releases-url")?.value ?? "";
 		const token = this.select<HTMLInputElement>("#releases-token")?.value ?? "";
-		const result = this.select("#releases-result");
 		const parsed = GitHubUrlParser.parseRepositoryUrl(url);
 
-		this.hideError("releases");
-		result?.classList.add("hidden");
-		const resetButton = this.setLoading("#releases-submit", strings.githubTools.shared.processing, "progress_activity");
+		this.feedback.hideError("releases");
+		this.releasesView.setResultVisible(false);
+		const resetButton = this.feedback.setLoading("#releases-submit", strings.githubTools.shared.processing);
 
 		if (!parsed) {
-			this.showError("releases", strings.githubTools.shared.invalidGitHubUrl);
+			this.feedback.showError("releases", strings.githubTools.shared.invalidGitHubUrl);
 			resetButton();
 			this.finishPendingAction("releases");
 			return;
 		}
 
 		try {
-			this.state.releases.data = await DataServices.github.getReleaseStats(parsed, token);
+			const stats = await DataServices.github.getReleaseStats(parsed, token);
+			this.state.releases.data = stats;
 			this.state.releases.selectedIndex = 0;
-			this.renderReleases();
-			result?.classList.remove("hidden");
+			this.releasesView.render(stats, 0);
+			this.releasesView.setResultVisible(true);
+			if (stats.truncated) {
+				this.feedback.showError("releases", formatMessage(strings.githubTools.releases.truncated, {
+					count: formatNumber(stats.releases.length),
+				}));
+			}
 		} catch (error) {
-			this.showError("releases", this.errorMessage(error));
+			this.feedback.showError("releases", this.errorMessage(error));
 		} finally {
 			resetButton();
 			this.finishPendingAction("releases");
 		}
 	}
 
-	private renderReleases(): void {
-		this.renderSelectedReleaseDetails();
-		this.renderReleaseList();
-	}
-
-	private renderSelectedReleaseDetails(): void {
-		if (!this.state.releases.data) return;
-		const { total, releases } = this.state.releases.data;
-		const active = releases[this.state.releases.selectedIndex];
-		const maxAssetDownloads = Math.max(...active.assets.map((asset) => asset.downloads), 0);
-
-		this.select("#rel-detail-name")!.textContent = active.name;
-		this.select("#rel-detail-tag")!.textContent = active.tagName;
-		this.select("#rel-detail-date")!.textContent = active.date
-			? formatDate(new Date(active.date))
-			: strings.githubTools.releases.unpublished;
-		this.select("#rel-detail-downloads")!.textContent = formatNumber(active.downloads);
-		this.select("#rel-total-downloads")!.textContent = formatNumber(total);
-		this.select("#rel-count")!.textContent = formatEnglishPlural(
-			releases.length,
-			strings.githubTools.releases.found_one,
-			strings.githubTools.releases.found_other,
-		);
-
-		const assetList = this.select("#rel-assets-list")!;
-		assetList.textContent = "";
-		if (active.assets.length === 0) {
-			const empty = document.createElement("div");
-			empty.className = "empty-list";
-			empty.textContent = strings.githubTools.releases.noAssets;
-			assetList.append(empty);
-		} else {
-			active.assets.forEach((asset) => assetList.append(this.createAssetRow(asset, maxAssetDownloads)));
-		}
-	}
-
-	private renderReleaseList(): void {
-		if (!this.state.releases.data) return;
-		const { releases } = this.state.releases.data;
-		const maxDownloads = Math.max(...releases.map((release) => release.downloads), 0);
-		const releaseList = this.select("#rel-list")!;
-
-		releaseList.textContent = "";
-		releases.forEach((release, index) => releaseList.append(this.createReleaseButton(release, index, maxDownloads)));
-	}
-
-	private syncSelectedReleaseButton(): void {
-		this.selectAll<HTMLButtonElement>("[data-release-index]").forEach((button) => {
-			const selected = Number(button.dataset.releaseIndex) === this.state.releases.selectedIndex;
-			button.classList.toggle("selected", selected);
-			button.setAttribute("aria-pressed", String(selected));
-		});
-	}
-
-	private createAssetRow(asset: ReleaseAsset, maxDownloads: number): HTMLElement {
-		const row = document.createElement("div");
-		row.className = "asset-row";
-		row.innerHTML = `<div class="asset-line"><strong></strong><span></span></div><div class="bar-track"><div class="bar-fill"></div></div>`;
-		row.querySelector("strong")!.textContent = asset.name;
-		row.querySelector("span")!.textContent = formatNumber(asset.downloads);
-		const width = maxDownloads > 0 ? (asset.downloads / maxDownloads) * 100 : 0;
-		(row.querySelector(".bar-fill") as HTMLElement).style.width = `${width}%`;
-		return row;
-	}
-
-	private createReleaseButton(release: ProcessedRelease, index: number, maxDownloads: number): HTMLButtonElement {
-		const button = document.createElement("button");
-		const selected = index === this.state.releases.selectedIndex;
-		button.type = "button";
-		button.dataset.releaseIndex = String(index);
-		button.setAttribute("aria-pressed", String(selected));
-		button.className = `release-button${selected ? " selected" : ""}`;
-		button.innerHTML = `<div class="release-button-header"><span class="release-button-title"></span><span class="release-button-count"></span></div><div class="bar-track"><div class="bar-fill"></div></div>`;
-		button.querySelector(".release-button-title")!.textContent = release.name;
-		button.querySelector(".release-button-count")!.textContent = formatNumber(release.downloads);
-		const width = maxDownloads > 0 ? (release.downloads / maxDownloads) * 100 : 0;
-		(button.querySelector(".bar-fill") as HTMLElement).style.width = `${width}%`;
-		button.addEventListener("click", () => {
-			this.state.releases.selectedIndex = index;
-			this.syncSelectedReleaseButton();
-			this.renderSelectedReleaseDetails();
-		});
-		return button;
+	private selectRelease(index: number): void {
+		const stats = this.state.releases.data;
+		if (!stats || !stats.releases[index]) return;
+		this.state.releases.selectedIndex = index;
+		this.releasesView.syncSelection(index);
+		this.releasesView.renderDetails(stats, index);
 	}
 
 	private async handlePatchSubmit(event: SubmitEvent): Promise<void> {
 		event.preventDefault();
 		if (!this.startPendingAction("patch")) return;
 		const url = this.select<HTMLInputElement>("#patch-url")?.value ?? "";
-		const result = this.select("#patch-result");
 		const parsed = GitHubUrlParser.parseCommitUrl(url);
 
-		this.hideError("patch");
-		result?.classList.add("hidden");
-		const resetButton = this.setLoading("#patch-submit", strings.githubTools.patch.fetching, "progress_activity");
+		this.feedback.hideError("patch");
+		this.patchView.setResultVisible(false);
+		const resetButton = this.feedback.setLoading("#patch-submit", strings.githubTools.patch.fetching);
 
 		if (!parsed) {
-			this.showError("patch", strings.githubTools.patch.invalidCommitUrl);
+			this.feedback.showError("patch", strings.githubTools.patch.invalidCommitUrl);
 			resetButton();
 			this.finishPendingAction("patch");
 			return;
@@ -660,10 +671,10 @@ export default class GitHubToolsApp extends WebComponent {
 
 		try {
 			this.state.patch = await DataServices.github.getCommitPatch(parsed);
-			this.select("#patch-code")!.textContent = this.state.patch.content;
-			result?.classList.remove("hidden");
+			this.patchView.renderPatch(this.state.patch.content);
+			this.patchView.setResultVisible(true);
 		} catch (error) {
-			this.showError("patch", this.errorMessage(error));
+			this.feedback.showError("patch", this.errorMessage(error));
 		} finally {
 			resetButton();
 			this.finishPendingAction("patch");
@@ -671,18 +682,13 @@ export default class GitHubToolsApp extends WebComponent {
 	}
 
 	private async copyMapperOutput(): Promise<void> {
-		await this.copyTextWithFeedback(this.select("#mapper-code")?.textContent ?? "", "#mapper-copy-btn");
+		const copied = await this.feedback.copyToClipboard(this.mapperView.outputText(), "#mapper-copy-btn");
+		if (!copied) this.feedback.showError("mapper", strings.githubTools.shared.copyFailed);
 	}
 
 	private async copyPatchOutput(): Promise<void> {
-		await this.copyTextWithFeedback(this.state.patch.content, "#patch-copy-btn");
-	}
-
-	private async copyTextWithFeedback(text: string, buttonSelector: string): Promise<void> {
-		if (!text) return;
-		await navigator.clipboard.writeText(text);
-		const resetButton = this.setButtonState(buttonSelector, strings.common.actions.copied, "check_circle", false, "copied");
-		window.setTimeout(resetButton, 2000);
+		const copied = await this.feedback.copyToClipboard(this.state.patch.content, "#patch-copy-btn");
+		if (!copied) this.feedback.showError("patch", strings.githubTools.shared.copyFailed);
 	}
 
 	private downloadPatch(): void {
@@ -698,15 +704,6 @@ export default class GitHubToolsApp extends WebComponent {
 		URL.revokeObjectURL(href);
 	}
 
-	private showError(scope: "mapper" | "releases" | "patch", message: string): void {
-		this.select(`#${scope}-error-text`)!.textContent = message;
-		this.select(`#${scope}-error`)!.classList.remove("hidden");
-	}
-
-	private hideError(scope: "mapper" | "releases" | "patch"): void {
-		this.select(`#${scope}-error`)?.classList.add("hidden");
-	}
-
 	private startPendingAction(action: "mapper" | "releases" | "patch"): boolean {
 		if (this.pendingActions.has(action)) return false;
 		this.pendingActions.add(action);
@@ -715,51 +712,6 @@ export default class GitHubToolsApp extends WebComponent {
 
 	private finishPendingAction(action: "mapper" | "releases" | "patch"): void {
 		this.pendingActions.delete(action);
-	}
-
-	private setLoading(buttonSelector: string, label: string, _iconName: string): () => void {
-		const progress = document.createElement("md-circular-progress");
-		progress.setAttribute("slot", "icon");
-		progress.setAttribute("data-icon", "");
-		progress.setAttribute("indeterminate", "");
-		progress.setAttribute("aria-label", strings.common.actions.loading);
-		return this.setButtonState(buttonSelector, label, progress, true, "is-loading");
-	}
-
-	private setButtonState(buttonSelector: string, label: string, iconReplacement: HTMLElement | string, disabled: boolean, stateClass: string): () => void {
-		const button = this.select<HTMLElement>(buttonSelector);
-		const icon = button?.querySelector<HTMLElement>("[data-icon]");
-		const text = button?.querySelector<HTMLElement>("[data-label]");
-		if (!button || !icon || !text) return () => {};
-
-		const replacement = typeof iconReplacement === "string" ? this.createSlottedStateIcon(iconReplacement) : iconReplacement;
-		const originalIcon = icon.cloneNode(true);
-		const originalText = text.textContent ?? "";
-		const wasDisabled = button.hasAttribute("disabled");
-
-		button.toggleAttribute("disabled", disabled);
-		button.classList.add(stateClass);
-		icon.replaceWith(replacement);
-		text.textContent = label;
-		return () => {
-			button.toggleAttribute("disabled", wasDisabled);
-			button.classList.remove(stateClass);
-			replacement.replaceWith(originalIcon);
-			text.textContent = originalText;
-		};
-	}
-
-	private createIcon(name: string): HTMLElement {
-		const icon = document.createElement("md-icon");
-		icon.textContent = name;
-		return icon;
-	}
-
-	private createSlottedStateIcon(name: string): HTMLElement {
-		const icon = this.createIcon(name);
-		icon.setAttribute("slot", "icon");
-		icon.setAttribute("data-icon", "");
-		return icon;
 	}
 
 	private errorMessage(error: unknown): string {

@@ -24,7 +24,10 @@
   "location": {
     "useMyLocation": "Use my location",
     "notSupported": "Location is not supported by this browser.",
-    "countryUnknown": "We could not identify your country."
+    "countryUnknown": "We could not identify your country.",
+    "permissionDenied": "Location permission was declined. Pick a country below instead.",
+    "unavailable": "Your location could not be determined right now.",
+    "timedOut": "The location request took too long. Pick a country below instead."
   },
   "ranking": {
     "loadingLabel": "Loading leaderboard",
@@ -40,7 +43,10 @@
     "openProfile": "Open {username} on GitHub, ranked {rank} in {country}",
     "position": "{ordinal} in {country}",
     "paginationLabel": "Leaderboard pages",
-    "pageStatus": "Page {page} of {pageCount}"
+    "pageStatus": "Page {page} of {pageCount}",
+    "resultCount_one": "{count} result",
+    "resultCount_other": "{count} results",
+    "errorLabel": "Leaderboard error"
   },
   "errors": {
     "requestStatus": "Leaderboard request failed with status {status}.",

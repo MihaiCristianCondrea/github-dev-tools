@@ -18,8 +18,8 @@ export class ManageFavoritesUseCase {
 		return this.repository.load();
 	}
 
-	save(favorites: FavoriteRepository[]): void {
-		this.repository.save(favorites);
+	save(favorites: FavoriteRepository[]): boolean {
+		return this.repository.save(favorites);
 	}
 
 	isFavorite(favorites: FavoriteRepository[], repository: RepositoryRef): boolean {

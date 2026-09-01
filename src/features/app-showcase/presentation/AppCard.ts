@@ -11,6 +11,8 @@ export class AppCard extends HTMLElement {
 			? `<img src="${this.escapeAttribute(app.iconUrl)}" alt="" loading="lazy" />`
 			: "<md-icon class=\"app-icon-placeholder\">apps</md-icon>";
 		const openLabel = formatMessage(strings.common.appShowcase.openOnGooglePlay, { appName: app.name });
+		const category = app.category || strings.common.appShowcase.defaultCategory;
+		const description = app.description || strings.common.appShowcase.defaultDescription;
 
 		// Material buttons support link-button attributes; keep actions as a single interactive element.
 		this.innerHTML = `
@@ -18,8 +20,8 @@ export class AppCard extends HTMLElement {
 				<div class="app-icon">${icon}</div>
 				<div class="app-content">
 					<h3>${this.escape(app.name)}</h3>
-					<p class="app-category">${this.escape(app.category)}</p>
-					<p>${this.escape(app.description)}</p>
+					<p class="app-category">${this.escape(category)}</p>
+					<p>${this.escape(description)}</p>
 				</div>
 				<md-outlined-button
 					class="play-link"
