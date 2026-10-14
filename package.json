@@ -13,7 +13,7 @@
 	},
 	"devDependencies": {
 		"typescript": "^7.0.2",
-		"vite": "^8.2.2"
+		"vite": "^8.3.4"
 	},
 	"dependencies": {
 		"@material/web": "^2.5.0"
